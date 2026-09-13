@@ -14,7 +14,7 @@
 ! Subroutine to load 3-RDM and F4-RDM
 ! Written by Quan Phung and Sebastian Wouters, Leuven, Aug 2016
 
-subroutine chemps2_load3pdm(NAC,idxG3,NG3,storage,doG3,EPSA,F2,chemroot)
+subroutine chemps2_load3pdm(NAC,idxG3,NG3,storage,doG3,EPSA,F2,chemroot,TRANS)
 
 #include "intent.fh"
 
@@ -29,6 +29,7 @@ integer(kind=i1), intent(in) :: idxG3(6,NG3)
 real(kind=wp), intent(_OUT_) :: storage(*)
 real(kind=wp), intent(out) :: F2(NAC,NAC,NAC,NAC)
 logical(kind=iwp), intent(in) :: doG3
+logical(kind=iwp), intent(in) :: TRANS
 real(kind=wp), intent(in) :: EPSA(NAC)
 character(len=30) :: file_3rdm, file_f4rdm
 character(len=10) :: rootindex
@@ -39,6 +40,10 @@ real(kind=wp), allocatable :: buffer(:)
 write(rootindex,'(i2)') chemroot-1
 file_3rdm = 'molcas_3rdm.h5.r'//trim(adjustl(rootindex))
 file_f4rdm = 'molcas_f4rdm.h5.r'//trim(adjustl(rootindex))
+if (TRANS) then
+  file_3rdm = trim(file_3rdm)//'.tran'
+  file_f4rdm = trim(file_f4rdm)//'.tran'
+end if
 file_3rdm = trim(adjustl(file_3rdm))
 file_f4rdm = trim(adjustl(file_f4rdm))
 call f_inquire(file_3rdm,irdm)

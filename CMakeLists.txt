@@ -116,7 +116,7 @@ set (EXTERNAL_LIBXC "" CACHE STRING "Location for an external Libxc build")
 option (FDE "Enable Frozen-density-embedding (FDE) interface." OFF)
 option (GROMACS "Compile Gromacs interface." OFF)
 option (BLOCK "Activate BLOCK-DMRG support." OFF)
-option (CHEMPS2 "Activate CheMPS2-DMRG support." OFF)
+option (CHEMPS2 "Activate CheMPS2-DMRG support." ON)
 option (DICE "Activate Dice-SHCI support." OFF)
 
 option (GPERFTOOLS "Activate gperftools CPU profiling." OFF)

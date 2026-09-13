@@ -79,6 +79,9 @@
       use general_data, only: NSYM,NACTEL,JOBIPH,LUINTM,LUQUNE,NASH,
      &                        NBAS,NDEL,NFRO,NISH,NORB,NRS1,NRS2,NRS3,
      &                        NSSH,NTOT,NTOT1,NTOT2
+#ifdef _ENABLE_CHEMPS2_DMRG_
+      use rasscf_global, only: chemps2_can
+#endif
 
 
       Implicit None
@@ -112,6 +115,12 @@
      &           NIA, NIAIA, NLCC, NLHH, NLOVL, NLQ, NLX1, NLX2, NO,
      &           nP2Act, NQ, NAE
       Integer, External:: IsFreeUnit
+#ifdef _ENABLE_CHEMPS2_DMRG_
+      Character(LEN=3) ChemLabel
+      Integer ChemCh(8), iAct, iActOffset, iFockIndex, jAct,
+     &        LuChemFck, nActTotal
+      Integer, Allocatable:: ChemOrbSym(:)
+#endif
 
 C PAM01 The SXCI part has been slightly modified by P-AA M Jan 15, 2001:
 C Changes affect several of the subroutines of this part.
@@ -280,6 +289,62 @@ c         Write(LF,*) ' ---------------------'
       CALL mma_allocate(BM,NSXS,Label='BM')
       CALL mma_allocate(QMat,NQ,Label='QMat') ! q-matrix(1symmblock)
       CALL FOCK(FCK,BM,FI,FA,D,STRP,QMat,PUVX,IFINAL,CMO)
+
+#ifdef _ENABLE_CHEMPS2_DMRG_
+* For noncanonical CheMPS2-CASPT2, IPT2 is zero and FCKPT2 is skipped.
+* Write the active-space Fock matrix here before the final CheMPS2 call.
+      If (IFINAL.eq.1 .and. .not.chemps2_can) Then
+        nActTotal=0
+        Do iSym=1,nSym
+          nActTotal=nActTotal+nAsh(iSym)
+        End Do
+
+        Call MOLPRO_ChTab(nSym,ChemLabel,ChemCh)
+        Call mma_allocate(ChemOrbSym,nActTotal,Label='ChemOrbSym')
+        iOrb=1
+        Do iSym=1,nSym
+          Do jAct=1,nAsh(iSym)
+            ChemOrbSym(iOrb)=ChemCh(iSym)
+            iOrb=iOrb+1
+          End Do
+        End Do
+
+        LuChemFck=IsFreeUnit(27)
+        Call molcas_open(LuChemFck,'FOCK_CHEMPS2')
+        Write(LuChemFck,'(1X,A12,I2,A1)')
+     &        '&FOCK NACT= ',nActTotal,','
+        Write(LuChemFck,'(2X,A7)',ADVANCE='NO') 'ORBSYM='
+        Do iOrb=1,nActTotal
+          Write(LuChemFck,'(I1,A1)',ADVANCE='NO')
+     &          ChemOrbSym(iOrb),','
+        End Do
+        Write(LuChemFck,*)
+        Write(LuChemFck,*) '/'
+
+        iOff=1
+        iActOffset=0
+        Do iSym=1,nSym
+          iOrb=nOrb(iSym)
+          Do iAct=1,nAsh(iSym)
+            Do jAct=1,iAct
+              iFockIndex=(iOff-1)
+     &                  +(nIsh(iSym)+iAct)*(nIsh(iSym)+iAct+1)/2
+     &                  -(iAct-jAct)
+              Write(LuChemFck,'(1X,ES23.16E2,I4,I4)')
+     &              FA(iFockIndex),iAct+iActOffset,jAct+iActOffset
+              If (iAct.ne.jAct) Then
+                Write(LuChemFck,'(1X,ES23.16E2,I4,I4)')
+     &                FA(iFockIndex),jAct+iActOffset,iAct+iActOffset
+              End If
+            End Do
+          End Do
+          iOff=iOff+(iOrb*iOrb+iOrb)/2
+          iActOffset=iActOffset+nAsh(iSym)
+        End Do
+        Close(LuChemFck)
+        Call mma_deallocate(ChemOrbSym)
+      End If
+#endif
 c Now FA = FI + FA. Original FA has been overwritten in FOCK routine.
       IF(IPRLEV.GE.DEBUG) THEN
         Write(LF,*)

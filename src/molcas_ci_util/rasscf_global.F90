@@ -62,9 +62,9 @@ public :: DoDelChk, domcpdftDMRG, DoNEVPT2Prep, MPSCompressM, twordm_qcm
 #if defined (_ENABLE_CHEMPS2_DMRG_)
 integer(kind=iwp) :: chemps2_lrestart, max_canonical, max_sweep
 real(kind=wp) :: chemps2_blb, chemps2_noise, davidson_tol
-logical(kind=iwp) :: chemps2_restart
+logical(kind=iwp) :: chemps2_can, chemps2_restart
 
-public :: chemps2_blb, chemps2_lrestart, chemps2_noise, chemps2_restart, davidson_tol, max_canonical, max_sweep
+public :: chemps2_blb, chemps2_can, chemps2_lrestart, chemps2_noise, chemps2_restart, davidson_tol, max_canonical, max_sweep
 #endif
 
 #if defined (_ENABLE_BLOCK_DMRG_) || defined (_ENABLE_CHEMPS2_DMRG_)

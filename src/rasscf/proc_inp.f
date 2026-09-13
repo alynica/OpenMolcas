@@ -91,6 +91,7 @@
 #endif
 #ifdef _ENABLE_CHEMPS2_DMRG_
       use rasscf_global, only: ChemPS2_Restart, ChemPS2_lRestart,
+     &                         ChemPS2_Can,
      &                         Davidson_Tol, ChemPS2_BLB, Max_Sweep,
      &                         ChemPS2_Noise, Max_Canonical, MxDMRG,
      &                         Do3RDM
@@ -230,6 +231,7 @@ C   No changing about read in orbital information from INPORB yet.
 ! Quan.16: CheMPS2 default flags
       chemps2_restart=.false.
       chemps2_lrestart=0
+      chemps2_can=.true.
       davidson_tol = 1.0d-7
       chemps2_blb = 0.5d-2
       max_sweep = 8
@@ -3154,6 +3156,16 @@ c       write(6,*)          '  --------------------------------------'
       End If
 
 #ifdef _ENABLE_CHEMPS2_DMRG_
+*
+*---  Process CHNO command --------------------------------------------*
+      If (KeyCHNO) Then
+       Write(6,*) 'CHEMPS2> Using noncanonical active orbitals'
+       iOrbTyp = 1
+       IPT2 = 0
+       chemps2_can = .false.
+       Call SetPos(LUInput,'CHNO',Line,iRc)
+       Call ChkIfKey()
+      End If
 *
 *---  Process DAVT command --------------------------------------------*
       If (KeyDAVT) Then

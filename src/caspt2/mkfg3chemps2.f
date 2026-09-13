@@ -17,6 +17,7 @@
 #ifdef _ENABLE_CHEMPS2_DMRG_
       Subroutine mkfg3chemps2(IFF,NLEV,G1,F1,G2,F2,G3,F3,idxG3)
       use gugx, only: SGS
+      use InputData, only: Input
       IMPLICIT NONE
 
 #include "caspt2.fh"
@@ -34,7 +35,8 @@
 
       If(NACTEL.GT.1) Then
         NAC4 = NLEV * NLEV * NLEV * NLEV
-        Call chemps2_load2pdm( nlev, G2, MSTATE(JSTATE) )
+        Call chemps2_load2pdm( nlev, G2, MSTATE(JSTATE),
+     &                         Input%DoTranRDM )
         Call two2onerdm( nlev, NACTEL, G2, G1 )
       Else
         write(6,*) "FATAL ERROR: DMRG-CASPT2 with
@@ -58,9 +60,9 @@
       If(NACTEL.GE.3) THEN
 
         call chemps2_load3pdm( nlev, idxG3, NG3, F3, .false., EPSA,
-     &                         F2, MSTATE(JSTATE) )
+     &                         F2, MSTATE(JSTATE), Input%DoTranRDM )
         call chemps2_load3pdm( nlev, idxG3, NG3, G3, .true. , EPSA,
-     &                         F2, MSTATE(JSTATE) )
+     &                         F2, MSTATE(JSTATE), Input%DoTranRDM )
 
       End If
 

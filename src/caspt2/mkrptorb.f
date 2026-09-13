@@ -20,6 +20,9 @@
       use fciqmc_interface, only: DoFCIQMC, NonDiagonal
       use caspt2_global, only: LUCIEX, IDCIEX, IDTCEX
       use stdalloc, only: mma_allocate, mma_deallocate
+#ifdef _ENABLE_CHEMPS2_DMRG_
+      use InputData, only: Input
+#endif
       IMPLICIT NONE
 #include "caspt2.fh"
 C Transform to orbitals that diagonalize the diagonal
@@ -43,7 +46,7 @@ C     indices
       INTEGER IEPS,IEPSI,IEPSA,IEPSE
       INTEGER IOSTA,IOEND
       INTEGER NFOCK,NFES
-#ifdef _ENABLE_BLOCK_DMRG_
+#if defined (_ENABLE_BLOCK_DMRG_) || defined (_ENABLE_CHEMPS2_DMRG_)
       INTEGER NXMAT
       REAL*8, ALLOCATABLE:: XMAT(:)
 #endif
@@ -292,8 +295,23 @@ C Finally, loop again over symmetries, transforming the CI:
           END IF
 #elif _ENABLE_CHEMPS2_DMRG_
           ELSE
-            write(6,*) 'CHEMPS2> MKRPTORB assumes '//
-     &    'PSEUDOCANONICAL orbitals!'
+            IF (Input%DoTranRDM) THEN
+              write(6,*) 'CHEMPS2> Transforming RDMs to '//
+     &                   'pseudocanonical orbitals'
+              NXMAT=NASHT**2
+              CALL mma_allocate(XMAT,NXMAT,LABEL='XMAT')
+              XMAT(:)=0.0D0
+              CALL MKXMAT_CHEMPS2(TORB,XMAT)
+              CALL chemps2_tran2pdm(NASHT,XMAT,MSTATE(JSTATE))
+              CALL chemps2_tran3pdm(NASHT,XMAT,MSTATE(JSTATE),
+     &                               .TRUE.)
+              CALL chemps2_tran3pdm(NASHT,XMAT,MSTATE(JSTATE),
+     &                               .FALSE.)
+              CALL mma_deallocate(XMAT)
+            ELSE
+              write(6,*) 'CHEMPS2> MKRPTORB assumes '//
+     &                   'PSEUDOCANONICAL orbitals!'
+            END IF
           END IF
 #endif
         end if
