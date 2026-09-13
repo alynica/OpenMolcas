@@ -31,6 +31,7 @@ subroutine prinp_caspt2()
 !                                                                      *
 !***********************************************************************
   use definitions, only: iwp, wp
+  use InputData, only: Input
   use caspt2_global, only: iPrGlb
   use PrintLevel, only: terse, usual, verbose
   use caspt2_global, only: sigma_p_epsilon, sigma_p_exponent, &
@@ -124,8 +125,13 @@ subroutine prinp_caspt2()
         end if
 #elif _ENABLE_CHEMPS2_DMRG_
         if (DoCumulant) then
-          write(6,fmt1) 'This is a DMRG reference with exact 4-RDM,'// &
-                        ' activated by 3RDM keyword in RASSCF'
+          if (Input%DoApproRDM) then
+            write(6,fmt1) 'This is a DMRG reference with an approximate 4-RDM,'// &
+                          ' activated by CHCU in CASPT2'
+          else
+            write(6,fmt1) 'This is a DMRG reference with exact 4-RDM,'// &
+                          ' activated by 3RDM keyword in RASSCF'
+          end if
         end if
 #endif
       else if (iscf == 1) then

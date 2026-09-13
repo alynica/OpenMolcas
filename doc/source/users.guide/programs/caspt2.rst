@@ -1084,6 +1084,20 @@ Keywords
               </HELP>
               </KEYWORD>
 
+:kword:`CHCUmulant`
+  Use the CheMPS2 three-particle RDM to reconstruct the Fock-contracted
+  four-particle RDM with the fourth-order cumulant approximation. Use this
+  together with :kword:`CHEMps2`; in the preceding :program:`RASSCF` input,
+  use :kword:`3RDM` and :kword:`NO4RDM`. If noncanonical active orbitals are
+  retained with :kword:`CHNOcanonical`, also use :kword:`CHTRansform`.
+
+  .. xmldoc:: <KEYWORD MODULE="CASPT2" NAME="CHCUMULANT" APPEAR="Cumulant approximation for CheMPS2 F.4-RDM" KIND="SINGLE" LEVEL="BASIC">
+              %%Keyword: CHCUmulant <basic>
+              <HELP>
+              Reconstruct the CheMPS2 F.4-RDM contribution from lower-order RDMs.
+              </HELP>
+              </KEYWORD>
+
 :kword:`CUMUlant`
   Activate DMRG-cu(4)-CASPT2 calculation with |molcas|--Block interface.
   The keyword :kword:`3RDM` must be used in :program:`RASSCF`.

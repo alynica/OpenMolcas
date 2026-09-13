@@ -34,7 +34,7 @@ real(kind=wp), intent(in) :: EPSA(NAC)
 character(len=30) :: file_3rdm, file_f4rdm
 character(len=10) :: rootindex
 integer(kind=iwp) :: file_h5, group_h5, ip1, ip2, ip3, iq1, iq2, iq3, idx, iG3
-logical(kind=iwp) :: irdm, jrdm
+logical(kind=iwp) :: rdm_found
 real(kind=wp), allocatable :: buffer(:)
 
 write(rootindex,'(i2)') chemroot-1
@@ -46,10 +46,17 @@ if (TRANS) then
 end if
 file_3rdm = trim(adjustl(file_3rdm))
 file_f4rdm = trim(adjustl(file_f4rdm))
-call f_inquire(file_3rdm,irdm)
-call f_inquire(file_f4rdm,jrdm)
-if ((.not. irdm) .or. (.not. jrdm)) then
-  write(u6,'(1x,a15,i3,a26)') 'CHEMPS2> Root: ',CHEMROOT,' :: No 3RDM or F.4RDM file'
+if (doG3) then
+  call f_inquire(file_3rdm,rdm_found)
+else
+  call f_inquire(file_f4rdm,rdm_found)
+end if
+if (.not. rdm_found) then
+  if (doG3) then
+    write(u6,'(1x,a15,i3,a17)') 'CHEMPS2> Root: ',CHEMROOT,' :: No 3-RDM file'
+  else
+    write(u6,'(1x,a15,i3,a19)') 'CHEMPS2> Root: ',CHEMROOT,' :: No F.4-RDM file'
+  end if
   call abend()
 end if
 

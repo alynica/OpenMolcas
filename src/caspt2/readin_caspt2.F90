@@ -174,6 +174,8 @@ module InputData
     Logical(kind=iwp) :: doCumulant = .false.
     ! CHTR      transform external CheMPS2 RDMs to pseudocanonical orbitals
     Logical(kind=iwp) :: DoTranRDM = .false.
+    ! CHCU      approximate the CheMPS2 F.4-RDM by cumulant reconstruction
+    Logical(kind=iwp) :: DoApproRDM = .false.
     ! SADREF    use state-averaged density even for SS-CASPT2 with
     !           SA-CASSCF reference and MS-CASPT2 (not XMS)
     Logical :: SADREF = .False.
@@ -637,6 +639,8 @@ contains
         dochemps2 = .true.
       case ('CHTR')
         Input%DoTranRDM = .true.
+      case ('CHCU')
+        Input%DoApproRDM = .true.
 #endif
       case ('FCIQ')
         DoFciQMC = .true.
@@ -760,6 +764,10 @@ contains
       write (u6,*) 'CHEMPS2> Only State Specific calculation supported'
       call Quit_OnUserError()
     endif
+    if (Input%DoApproRDM .and. (.not. dochemps2)) then
+      write (u6,*) 'CHEMPS2> CHCU requires the CHEM keyword'
+      call Quit_OnUserError()
+    end if
 #endif
 
     if ((DoFCIQMC .eqv. .true.) .and. (nStates > 1)) then

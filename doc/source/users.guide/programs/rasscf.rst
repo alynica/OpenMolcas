@@ -2723,6 +2723,19 @@ Keywords for the CheMPS2 DMRG interface:
               </HELP>
               </KEYWORD>
 
+:kword:`NO4RDM`
+  Suppress calculation of the CheMPS2 Fock-contracted four-particle RDM.
+  Use this together with :kword:`3RDM` when the following
+  :program:`CASPT2` calculation uses :kword:`CHCUmulant`. The three-particle
+  RDM and the CheMPS2 Fock matrix are still generated.
+
+  .. xmldoc:: <KEYWORD MODULE="RASSCF" NAME="NO4RDM" APPEAR="Do not calculate the CheMPS2 F.4-RDM" KIND="SINGLE" LEVEL="BASIC">
+              %%Keyword: NO4RDM <basic>
+              <HELP>
+              Generate the CheMPS2 3-RDM without the F.4-RDM.
+              </HELP>
+              </KEYWORD>
+
 :kword:`CHBLb`
   Specify a threshold for activating restart in CheMPS2.
   After each macroiteration, if the max BLB value is smaller than CHBLb, activate partial restart in CheMPS2.

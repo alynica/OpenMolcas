@@ -305,8 +305,10 @@ C Finally, loop again over symmetries, transforming the CI:
               CALL chemps2_tran2pdm(NASHT,XMAT,MSTATE(JSTATE))
               CALL chemps2_tran3pdm(NASHT,XMAT,MSTATE(JSTATE),
      &                               .TRUE.)
-              CALL chemps2_tran3pdm(NASHT,XMAT,MSTATE(JSTATE),
-     &                               .FALSE.)
+              IF (.NOT. Input%DoApproRDM) THEN
+                CALL chemps2_tran3pdm(NASHT,XMAT,MSTATE(JSTATE),
+     &                                 .FALSE.)
+              END IF
               CALL mma_deallocate(XMAT)
             ELSE
               write(6,*) 'CHEMPS2> MKRPTORB assumes '//

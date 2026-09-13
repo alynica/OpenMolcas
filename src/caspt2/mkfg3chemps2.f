@@ -59,10 +59,20 @@
 
       If(NACTEL.GE.3) THEN
 
-        call chemps2_load3pdm( nlev, idxG3, NG3, F3, .false., EPSA,
-     &                         F2, MSTATE(JSTATE), Input%DoTranRDM )
-        call chemps2_load3pdm( nlev, idxG3, NG3, G3, .true. , EPSA,
-     &                         F2, MSTATE(JSTATE), Input%DoTranRDM )
+        If (Input%DoApproRDM) Then
+          write(6,*) 'CHEMPS2> Cumulant approximation for F.4-RDM'
+          call mkfg3cu4_chemps2(IFF,NLEV,G1,F1,G2,F2,G3,F3,
+     &                          idxG3,Input%DoTranRDM,
+     &                          MSTATE(JSTATE))
+        Else
+          write(6,*) 'CHEMPS2> Reading exact F.4-RDM'
+          call chemps2_load3pdm( nlev, idxG3, NG3, F3, .false.,
+     &                           EPSA, F2, MSTATE(JSTATE),
+     &                           Input%DoTranRDM )
+          call chemps2_load3pdm( nlev, idxG3, NG3, G3, .true.,
+     &                           EPSA, F2, MSTATE(JSTATE),
+     &                           Input%DoTranRDM )
+        End If
 
       End If
 

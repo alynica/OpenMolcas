@@ -62,7 +62,8 @@
 #ifdef _ENABLE_CHEMPS2_DMRG_
       use rasscf_global, only: ChemPS2_blb, ChemPS2_lrestart,
      &                         ChemPS2_Noise, ChemPS2_restart,
-     &                         Davidson_Tol, Do3RDM, HFOcc,
+     &                         ChemPS2_No4RDM, Davidson_Tol, Do3RDM,
+     &                         HFOcc,
      &                         Max_canonical, Max_Sweep
 #endif
       use printlevel, only: DEBUG,USUAL,TERSE,VERBOSE
@@ -274,6 +275,8 @@ C Local print level (if any)
      &                           chemps2_restart
       Write(LF,Fmt2//'A,T45,L6)')'Calculate 3-RDM and F.4-RDM',
      &                           Do3RDM
+      Write(LF,Fmt2//'A,T45,L6)')'Disable F.4-RDM',
+     &                           chemps2_no4rdm
       Write(LF,Fmt2//'A,T45,I6)')'Restart scheme in 3-RDM and F.4-RDM',
      &                           chemps2_lrestart
       write(SNAC, '(I3)') NAC

@@ -15,7 +15,7 @@ Private
 ! Logical unit number for reading input:
       Integer(kind=iwp), Public:: LuInput
 ! Used for input processing
-      Integer(kind=iwp), Parameter, Public :: NKeys=151
+      Integer(kind=iwp), Parameter, Public :: NKeys=152
 !------------------------------------------------------
 ! Logical flags, to check whether a keyword has been used
 ! in the input:
@@ -51,7 +51,7 @@ Private
      &     KeyCMSO, KeyPERI, KeySSCR, KeyMCM7, KeyWRMA,                 &
      &     KeyDICE, KeySTOC, KeyEPSI, KeySAMP, KeyDITE,                 &
      &     KeyDIRE, KeyDIOC, KeyPPT2, KeyNDPT, KeyRGRA,                 &
-     &     KeySTAV, KeyCHNO
+     &     KeySTAV, KeyCHNO, KeyNO4R
 
 ! we need the common block for the equivalence statement below to make sense.
       Common /InputFlags/ KeyAAAA,                                      &
@@ -85,7 +85,7 @@ Private
      &     KeyCMSO, KeyPERI, KeySSCR, KeyMCM7, KeyWRMA,                 &
      &     KeyDICE, KeySTOC, KeyEPSI, KeySAMP, KeyDITE,                 &
      &     KeyDIRE, KeyDIOC, KeyPPT2, KeyNDPT, KeyRGRA,                 &
-     &     KeySTAV, KeyCHNO
+     &     KeySTAV, KeyCHNO, KeyNO4R
 
       Equivalence(KeyAAAA,KeyFlags(0))
 !------------------------------------------------------
@@ -121,5 +121,5 @@ Private
      &                  'CMSO','PERI','SSCR','MCM7','WRMA',             &
      &                  'DICE','STOC','EPSI','SAMP','DITE',             &
      &                  'DIRE','DIOC','PPT2','NDPT','RGRA',             &
-     &                  'STAV','CHNO']
+     &                  'STAV','CHNO','NO4R']
 ENd Module Input_RAS

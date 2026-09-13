@@ -23,7 +23,7 @@ use MPI, only: MPI_COMM_WORLD
 use Para_Info, only: Is_Real_Par, King
 use Definitions, only: MPIInt
 #endif
-use rasscf_global, only: CBLBM, chemps2_blb, chemps2_can, chemps2_lrestart, chemps2_noise, chemps2_restart, &
+use rasscf_global, only: CBLBM, chemps2_blb, chemps2_can, chemps2_lrestart, chemps2_no4rdm, chemps2_noise, chemps2_restart, &
                          davidson_tol, Do3RDM, ENER, iCIonly, iOrbTyp, ITER, lroots, max_canonical, max_sweep, &
                          MxDMRG, NAC, THRE, hfocc
 use general_data, only: ISPIN, NACTEL, NASH, NSYM, STSYM
@@ -340,9 +340,14 @@ else
 end if
 
 if ((IFINAL == 2) .and. Do3RDM .and. (NACTEL > 2)) then
-  write(u6,*) 'CHEMPS2> Running 3-RDM and F.4-RDM'
+  write(u6,*) 'CHEMPS2> Running 3-RDM'
   write(LUCHEMIN,*) 'MOLCAS_3RDM    = molcas_3rdm.h5'
-  write(LUCHEMIN,*) 'MOLCAS_F4RDM   = molcas_f4rdm.h5'
+  if (chemps2_no4rdm) then
+    write(u6,*) 'CHEMPS2> F.4-RDM calculation disabled'
+  else
+    write(u6,*) 'CHEMPS2> Running F.4-RDM'
+    write(LUCHEMIN,*) 'MOLCAS_F4RDM   = molcas_f4rdm.h5'
+  end if
   write(LUCHEMIN,*) 'MOLCAS_FOCK    = FOCK_CHEMPS2'
 end if
 

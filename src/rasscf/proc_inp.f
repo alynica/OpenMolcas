@@ -91,7 +91,7 @@
 #endif
 #ifdef _ENABLE_CHEMPS2_DMRG_
       use rasscf_global, only: ChemPS2_Restart, ChemPS2_lRestart,
-     &                         ChemPS2_Can,
+     &                         ChemPS2_Can, ChemPS2_No4RDM,
      &                         Davidson_Tol, ChemPS2_BLB, Max_Sweep,
      &                         ChemPS2_Noise, Max_Canonical, MxDMRG,
      &                         Do3RDM
@@ -232,6 +232,7 @@ C   No changing about read in orbital information from INPORB yet.
       chemps2_restart=.false.
       chemps2_lrestart=0
       chemps2_can=.true.
+      chemps2_no4rdm=.false.
       davidson_tol = 1.0d-7
       chemps2_blb = 0.5d-2
       max_sweep = 8
@@ -3156,6 +3157,14 @@ c       write(6,*)          '  --------------------------------------'
       End If
 
 #ifdef _ENABLE_CHEMPS2_DMRG_
+*
+*---  Process NO4R command --------------------------------------------*
+      If (KeyNO4R) Then
+       Write(6,*) 'CHEMPS2> Disable F.4-RDM calculation'
+       chemps2_no4rdm=.True.
+       Call SetPos(LUInput,'NO4R',Line,iRc)
+       Call ChkIfKey()
+      End If
 *
 *---  Process CHNO command --------------------------------------------*
       If (KeyCHNO) Then

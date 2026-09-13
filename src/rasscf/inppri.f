@@ -58,7 +58,8 @@
 #if defined (_ENABLE_BLOCK_DMRG_) || defined (_ENABLE_CHEMPS2_DMRG_) || defined (_ENABLE_DICE_SHCI_)
       use rasscf_global, only: MXDMRG, ChemPS2_blb, ChemPS2_lreStart,
      &                         ChemPS2_Noise, ChemPS2_Restart,
-     &                         Davidson_tol, Do3RDM, HFOcc,
+     &                         ChemPS2_No4RDM, Davidson_tol, Do3RDM,
+     &                         HFOcc,
      &                         Max_canonical, Max_Sweep
 #endif
       use SplitCas_Data, only: DoSPlitCas,MxIterSplit,ThrSplit,
@@ -314,6 +315,8 @@ C.. for GAS
      &                           chemps2_restart
       Write(LF,Fmt2//'A,T45,L6)')'Calculate 3-RDM and F.4-RDM',
      &                           Do3RDM
+      Write(LF,Fmt2//'A,T45,L6)')'Disable F.4-RDM',
+     &                           chemps2_no4rdm
       Write(LF,Fmt2//'A,T45,I6)')'Restart scheme in 3-RDM and F.4-RDM',
      &                           chemps2_lrestart
       write(SNAC, '(I3)') NAC

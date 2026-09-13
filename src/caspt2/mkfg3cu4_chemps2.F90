@@ -1,0 +1,88 @@
+!***********************************************************************
+! This file is part of OpenMolcas.                                     *
+!                                                                      *
+! OpenMolcas is free software; you can redistribute it and/or modify   *
+! it under the terms of the GNU Lesser General Public License, v. 2.1. *
+! OpenMolcas is distributed in the hope that it will be useful, but it *
+! is provided "as is" and without any express or implied warranties.   *
+! For more details see the full text of the license in the file        *
+! LICENSE or in <http://www.gnu.org/licenses/>.                        *
+!                                                                      *
+! Copyright (C) 2018, Quan Phung                                       *
+!***********************************************************************
+
+#include "compiler_features.h"
+
+#ifdef _ENABLE_CHEMPS2_DMRG_
+subroutine mkfg3cu4_chemps2(IFF,NLEV,G1,F1,G2,F2,G3,F3,idxG3,TRANS,chemroot)
+
+use Constants, only: Half
+use Definitions, only: wp, iwp, i1
+use stdalloc, only: mma_allocate, mma_deallocate
+
+implicit none
+
+#include "caspt2.fh"
+#include "pt2_guga.fh"
+
+integer(kind=iwp), intent(in) :: IFF, NLEV, chemroot
+real(kind=wp), intent(in) :: G1(NLEV,NLEV), F1(NLEV,NLEV), G2(NLEV,NLEV,NLEV,NLEV)
+real(kind=wp), intent(inout) :: F2(NLEV,NLEV,NLEV,NLEV), F3(NG3)
+real(kind=wp), intent(out) :: G3(NG3)
+integer(kind=i1), intent(in) :: idxG3(6,NG3)
+logical(kind=iwp), intent(in) :: TRANS
+
+integer(kind=iwp) :: iG3, iw, jt, ju, jv, jx, jy, jz
+real(kind=wp), allocatable :: G3T(:)
+real(kind=wp), external :: CU4F3H
+
+! The compact 3-RDM is used directly by CASPT2, while the full 3-RDM is
+! needed for the G3-dependent terms of the cumulant reconstruction.
+call chemps2_load3pdm(NLEV,idxG3,NG3,G3,.true.,EPSA,F2,chemroot,TRANS)
+call mma_allocate(G3T,NLEV**6,label='G3T_CheMPS2')
+call chemps2_load3pdm_all(NLEV,G3T,chemroot,TRANS)
+
+if (IFF /= 0) then
+  do iG3=1,NG3
+    jt=idxG3(1,iG3)
+    ju=idxG3(2,iG3)
+    jv=idxG3(3,iG3)
+    jx=idxG3(4,iG3)
+    jy=idxG3(5,iG3)
+    jz=idxG3(6,iG3)
+
+    F3(iG3)=F3(iG3)+EASUM*G3(iG3)
+    do iw=1,NLEV
+      F3(iG3)=F3(iG3) &
+        -Half*G1(jt,iw)*g3val(iw,ju,jv,jx,jy,jz)*EPSA(iw) &
+        -Half*G1(iw,ju)*g3val(jt,iw,jv,jx,jy,jz)*EPSA(iw) &
+        -Half*G1(jv,iw)*g3val(iw,jx,jt,ju,jy,jz)*EPSA(iw) &
+        -Half*G1(iw,jx)*g3val(jv,iw,jt,ju,jy,jz)*EPSA(iw) &
+        -Half*G1(jy,iw)*g3val(iw,jz,jt,ju,jv,jx)*EPSA(iw) &
+        -Half*G1(iw,jz)*g3val(jy,iw,jt,ju,jv,jx)*EPSA(iw)
+    end do
+
+    F3(iG3)=F3(iG3)+CU4F3H(NLEV,EPSA,EASUM,G1,G2,F1,F2,jt,ju,jv,jx,jy,jz)
+  end do
+end if
+
+call mma_deallocate(G3T)
+
+contains
+
+function g3val(p1,q1,p2,q2,p3,q3) result(value)
+  integer(kind=iwp), intent(in) :: p1, q1, p2, q2, p3, q3
+  integer(kind=iwp) :: idx
+  real(kind=wp) :: value
+
+  idx=(p1-1)+NLEV*((p2-1)+NLEV*((p3-1)+NLEV*((q1-1)+NLEV*((q2-1)+NLEV*(q3-1)))))
+  value=G3T(1+idx)
+end function g3val
+
+end subroutine mkfg3cu4_chemps2
+
+#elif ! defined (EMPTY_FILES)
+#include "macros.fh"
+subroutine empty_mkfg3cu4_chemps2()
+end subroutine empty_mkfg3cu4_chemps2
+#endif
