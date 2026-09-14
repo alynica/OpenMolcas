@@ -21,7 +21,8 @@ use Symmetry_Info, only: Mul
 use sguga, only: SGS
 use general_data, only: nActel
 use caspt2_module, only: EPSA, jState, mState
-use InputData, only: Inputuse Constants, only: Zero
+use InputData, only: Input
+use Constants, only: Zero
 use Definitions, only: wp, iwp, byte, u6
 
 implicit none
