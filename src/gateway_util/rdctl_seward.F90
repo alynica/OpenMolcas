@@ -30,8 +30,8 @@ use Gateway_Info, only: Align_Only, CoM, CutInt, Do_Align, Do_FckInt, Do_GuessOr
 use DKH_Info, only: iCtrLD, BSS, cLightAU, DKroll, IRELAE, LDKRoll, nCtrlD, radiLD
 use Cholesky, only: Span, ThrCom
 use RICD_Info, only: Chol => Cholesky, DiagCheck, Do_acCD_Basis, Do_DCCD, Do_RI, iRI_Type, Skip_High_AC, Thrshld_CD
-use Gateway_global, only: DirInt, Expert, Fake_ERIs, Force_Out_of_Core, force_part_c, force_part_p, G_Mode, ifallorb, iPack, &
-                          NoTab, Onenly, Prprt, Run_Mode, S_Mode, Short, SW_FileOrb, Test
+use Gateway_global, only: DirInt, Expert, ExtBasDir, Fake_ERIs, Force_Out_of_Core, force_part_c, force_part_p, G_Mode, ifallorb, &
+                          iPack, NoTab, Onenly, Prprt, Run_Mode, S_Mode, Short, SW_FileOrb, Test
 use rctfld_module, only: lLangevin, lRF, PCM, RDS
 use rmat, only: bParm, Dipol, Dipol1, EpsAbs, EpsQ, EpsRel, QCoul, RMat_On, RMatR
 use define_af, only: AngTp, iTabMx
@@ -47,6 +47,8 @@ use Para_Info, only: MyRank
 #ifdef _MOLCAS_MPP_
 use Para_Info, only: Is_Real_Par
 #endif
+use PrintLevel, only: nPrint, Show
+use Molcas, only: LenIn, MxAtom, Mxdbsc
 use stdalloc, only: mma_allocate, mma_deallocate
 use Constants, only: Zero, One, Two, Three, Four, Ten, Pi, Angstrom, mu2elmass, UtoAU
 use Definitions, only: wp, iwp, u6
@@ -55,8 +57,6 @@ implicit none
 integer(kind=iwp), intent(in) :: LuRd_
 logical(kind=iwp), intent(inout) :: lOPTO
 logical(kind=iwp), intent(out) :: Do_OneEl
-#include "Molcas.fh"
-#include "print.fh"
 #ifdef _HAVE_EXTRA_
 #include "hyper.fh"
 #endif
@@ -79,7 +79,7 @@ logical(kind=iwp) :: AnyMode, Basis_test, BasisSet, CholeskyWasSet, Convert, Coo
                      WriteZMat
 character(len=LenIn) :: CtrLDK(10), dbas
 character(len=512) :: Align_Weights = 'MASS'
-character(len=256) :: BasLib, Basis_lib, Directory, ExtBasDir, Fname, GeoDir, KeepBasis, Message, Project, temp1, temp2
+character(len=256) :: BasLib, Basis_lib, Directory, Fname, GeoDir, KeepBasis, Message, Project, temp1, temp2
 character(len=180) :: filename, KeepGroup, Key, KWord, Ref(2)
 character(len=80) :: BSLbl, ChSkip, Title(10) = ''
 character(len=72) :: Header(2) = ''
@@ -3106,6 +3106,18 @@ end if
 ! Deallocate
 call mma_deallocate(nIsot,safe='*')
 call mma_deallocate(mIsot,safe='*')
+
+!***********************************************************************
+! Post-processing for RASSI: hfcop.F90 subroutine.
+! This scalar value instructs RASSI (readin_rassi) to halt input reading before proceeding to calculations.
+if ((IRELAE == 101) .and. lMXTC) then
+  call Put_iScalar('RX2C/MXTC_SEWARD',2)
+else if ((IRELAE == 101) .and. (.not. lMXTC)) then
+  call Put_iScalar('RX2C/MXTC_SEWARD',-1)
+else
+  call Put_iScalar('RX2C/MXTC_SEWARD',-2)
+end if
+
 !                                                                      *
 !***********************************************************************
 !                                                                      *
@@ -3472,7 +3484,7 @@ do iCnttp=1,nCnttp
     S%Mx_mdc = max(S%Mx_mdc,mdc)
     n_dc = max(mdc,n_dc)
     if (mdc > MxAtom) then
-      call WarningMessage(2,' mdc > MxAtom!; Increase MxAtom in Molcas.fh.')
+      call WarningMessage(2,' mdc > MxAtom!; Increase MxAtom in the Molcas module.')
       write(u6,*) ' MxAtom=',MxAtom
       call Abend()
     end if
@@ -3537,9 +3549,9 @@ end do
 if (S%mCentr > MxAtom) then
   call WarningMessage(2,'RdCtl: S%mCentr > MxAtom')
   write(u6,*) 'S%mCentr=',S%mCentr
-  write(u6,*) 'Edit src/Include/Molcas.fh'
+  write(u6,*) 'Edit the Molcas module source'
   write(u6,*) 'Set MxAtom to the value of S%mCentr.'
-  write(u6,*) 'Recompile MOLCAS and try again!'
+  write(u6,*) 'Recompile and try again!'
   call Abend()
 end if
 !                                                                      *
@@ -3622,7 +3634,7 @@ call SetMltplCenters()
 if (lMltpl) then
   do i=1,nTemp
     iMltpl = ITmp(i)
-    if (iMltpl <= S%nMltpl) Coor_MPM(:,iMltpl+1) = RTmp(:,i)
+    if (iMltpl <= S%nMltpl) Coor_MPM(:,iMltpl) = RTmp(:,i)
   end do
   call mma_deallocate(RTmp)
   call mma_deallocate(ITmp)

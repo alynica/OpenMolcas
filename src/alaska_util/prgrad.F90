@@ -23,17 +23,17 @@ subroutine PrGrad(Label,Grad,nGrad)
 !***********************************************************************
 
 use Symmetry_Info, only: lIrrep
+use Molcas, only: LenIn, MxAtom
 use Disp, only: ChDisp
 use Definitions, only: wp, iwp, u6
 
 implicit none
-#include "Molcas.fh"
 character(len=*), intent(in) :: Label
 integer(kind=iwp), intent(in) :: nGrad
 real(kind=wp), intent(in) :: Grad(nGrad)
 integer(kind=iwp) :: iCen, iGrad, mGrad
 real(kind=wp) :: CGrad(3,MxAtom), Temp, TempX, TempY, TempZ
-character(len=LenIn5) :: CNames(MxAtom), Namei
+character(len=LenIn+5) :: CNames(MxAtom), Namei
 
 write(u6,*)
 call Banner(Label,1,len(Label)+30)
