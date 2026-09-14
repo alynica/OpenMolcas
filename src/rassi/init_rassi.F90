@@ -16,7 +16,7 @@ use rassi_aux, only: ipglob
 #ifndef _DMRG_
 use rasscf_global, only: doDMRG
 #endif
-use Cntrl, only: AutoSelect_GFac, BINA, CIH5, CITHR, DCHO, DCHS, DEGEN_ETHR, DIPR, Do_Pol, Do_SK, DO_TMOM, DoCD, DYSEXPORT, DYSO, &
+use Cntrl, only: BINA, CIH5, CITHR, DCHO, DCHS, DEGEN_ETHR, DIPR, Do_Pol, Do_SK, DO_TMOM, DoCD, DYSEXPORT, DYSO, &
                  EPRThr, FnEig, FnTOM, FORCE_NON_AO_TDM, GNuc_set, HAVE_DIAG, HAVE_HEFF, HOP, HypF_rms_Req, IFArgU, IFCURD, &
                  IFDCPL, IFEJOB, IFGCAL, IFGTCALSA, IFGTSHSA, IFHAM, IFHCOM, IFHDIA, IFHEFF, IFHEXT, IFMCAL, IFNTO, IFSHFT, IFSO, &
                  IFTDM, IFTRD1, IFTRD2, IFXCAL, JBNAME, L_Eff, LHAMI, LOOPDIVIDE, LOOPMAX, LPRPR, LuEig, LuExc, LuIph, LuMck, &
@@ -162,7 +162,7 @@ RSTHR = Zero
 RSPR = .false.
 ! Force that TDMs are not stored in the AO basis.
 Force_NON_AO_TDM = .false.
-call GETENVF('MOLCAS_FORCE_NON_AO_TDM',STRING)
+call get_environment_variable('MOLCAS_FORCE_NON_AO_TDM',STRING)
 if (STRING == 'ON') Force_NON_AO_TDM = .true.
 !nf
 IfDCpl = .false.
@@ -181,7 +181,6 @@ NMass_set = .false.
 NSpin_set = .false.
 GNuc_set = .false.
 HypF_rms_Req = .false.
-AutoSelect_GFac = .false.
 
 ! K. Sharkas  BEG
 IFGTCALSA = .false.

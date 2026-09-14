@@ -14,14 +14,11 @@ set (sources
      cands.F90
      caspt2_global.F90
      caspt2_module.F90
+     caspt2_qmc_interface.F90
      check_invec.F90
      cidia.F90
      ciovlp.F90
      ciselect.F90
-     cisx.F90
-     citrans.F90
-     citrans_free.F90
-     citrans_init.F90
      cndet.F90
      cnfstr.F90
      cnhcn.F90
@@ -40,15 +37,9 @@ set (sources
      dmrginfo.F90
      expcsf.F90
      explh2.F90
-     faroald.F90
-     faroald_free.F90
-     faroald_init.F90
-     fciqmc_interface.F90
      fndmnx.F90
      fockoc.F90
-     gas_data.F90
      gatvcs.F90
-     general_data.F90
      get_d1a_rasscf.F90
      get_d1i_rasscf.F90
      get_umn.F90
@@ -58,9 +49,6 @@ set (sources
      hcsce.F90
      ini_david.F90
      init_lex.F90
-     input_mclr.F90
-     iphase.F90
-     isgnum.F90
      lex_iter.F90
      load_ci_vec.F90
      load_h_diag.F90
@@ -68,9 +56,7 @@ set (sources
      load_tmp_ci_vec.F90
      load_tmp_sig_vec.F90
      lucia2molcas.F90
-     lucia2molcas_free.F90
      matml4.F90
-     mclr_data.F90
      motrac.F90
      newgs.F90
      ordstr.F90
@@ -80,16 +66,12 @@ set (sources
      pageno.F90
      phpcsf.F90
      pmat_rasscf.F90
-     prttim.F90
-     rasdef.F90
-     rasdim.F90
+     rasscf_files.F90
      rasscf_global.F90
      rassi_data.F90
      rd1int.F90
      rd2int_rasscf.F90
      recno.F90
-     reord.F90
-     reord2.F90
      save_ci_vec.F90
      save_h_diag.F90
      save_sig_vec.F90
@@ -97,15 +79,11 @@ set (sources
      save_tmp_sig_vec.F90
      scavcs.F90
      schmidt.F90
-     second_quantization.F90
      setsxci.F90
      sigmadet_cvb.F90
      simplify.F90
      sort_cdet.F90
      spinfo.F90
-     stepvec.F90
-     stepvector_next.F90
-     str_info.F90
      sxci.F90
      term_david.F90
      timers.F90
@@ -120,10 +98,9 @@ set (modfile_list
      caspt2_module.F90
      csfbas.F90
      dmrginfo.F90
-     general_data.F90
-     input_mclr.F90
-     rasdef.F90
+     output_ras.F90
      rasdim.F90
+     rasscf_files.F90
      rasscf_global.F90
      rassi_data.F90
      spinfo.F90

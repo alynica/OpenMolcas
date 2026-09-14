@@ -18,8 +18,8 @@ use PrintLevel, only: VERBOSE
 use Para_Info, only: Is_Real_Par
 #endif
 use caspt2_global, only: iParRHS, iPrGlb, iStpGrd
-use caspt2_module, only: NAGEB, NAGTB, NASH, NASH, NASHT, NBTCH, NBTCHES, NIGEJ, NIGTJ, NISH, NISUP, NSSH, NSYM, NTGEU, NTGTU, &
-                         NTU, NTUV
+use general_data, only: NASH
+use caspt2_module, only: NAGEB, NAGTB, NASHT, NBTCH, NBTCHES, NIGEJ, NIGTJ, NISH, NISUP, NSSH, NSYM, NTGEU, NTGTU, NTU, NTUV
 use stdalloc, only: mma_MaxDBLE
 use Definitions, only: wp, iwp, u6
 
@@ -148,6 +148,10 @@ MINCHOL = MXNPITOT*MXBATCH
 
 !SVC: can we fit this all in memory?
 call mma_MaxDBLE(MXAVAIL)
+#ifdef _MOLCAS_MPP_
+! the same on every rank in practice, reduced just in case
+if (Is_Real_Par()) call GAIGOP_SCAL(MXAVAIL,'min')
+#endif
 
 MINNICE = MXRHS+MAXPIQK+2*MAXBUFF+2*MAXCHOL
 MINGOOD = MXRHS+MINPIQK+2*MINBUFF+2*MAXCHOL
@@ -203,7 +207,7 @@ if (MXAVAIL >= MINNICE) then
   NPIQK = MAXPIQK
 else if (MXAVAIL >= MINGOOD) then
   ! group all batches, take smaller buffer size, and try to max out
-  ! integrals, and check they are lager than minimum needed
+  ! integrals, and check they are larger than minimum needed
   NCHOBUF = MAXCHOL
   NBGRP = 1
   LBGRP(1,1) = IB1
@@ -216,7 +220,7 @@ else if (MXAVAIL >= MINSLOW) then
   NADDBUF = MINBUFF
   NPIQK = MINPIQK
   if (call_from_grad) then
-    NCHOBUF = (MXAVAIL-2*MXRHS-NPIQK-4*NADDBUF)/2
+    NCHOBUF = (MXAVAIL-2*MXRHS-NPIQK-4*NADDBUF)/4
   else
     NCHOBUF = (MXAVAIL-MXRHS-NPIQK-2*NADDBUF)/2
   end if

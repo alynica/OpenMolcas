@@ -49,7 +49,10 @@ subroutine RASSCF(IRETURN)
 !                                                                      *
 !***********************************************************************
 
+use Molcas, only: MxRoot
+use RASDim, only: MxIter
 use Index_Functions, only: nTri_Elem
+use ci_interfaces, only: CI_Close, CI_Timer
 use OneDat, only: sNoNuc, sNoOri
 use Fock_util_global, only: ALGO, DoActive, DoCholesky
 use write_orbital_files, only: OrbFiles, putOrbFile, write_orb_per_iter
@@ -67,42 +70,40 @@ use casvb_global, only: ifvb, invec_cvb
 use OFembed, only: Do_OFemb, FMaux
 use UnixInfo, only: ProgName
 use rctfld_module, only: lRF
-use Lucia_Interface, only: Lucia_Util
 use wadr, only: CMO, D1A, D1I, DIAF, DMAT, DSPN, FA, FI, FockOcc, OccN, PA, PMAT, TUVX
-use sguga, only: CIS, EXS, SGS, SG_Free
-use gas_data, only: iDOGAS
 use input_ras, only: Key, LuInput
 use raswfn, only: cre_raswfn, Wfn_FileID
 use timers, only: TimeCIOpt, TimeInput, TimeOrb, TimeOutput, TimeRelax, TimeTotal, TimeTrans, TimeWfn
-use rasscf_global, only: CBLBM, CMAX, Conv, DE, DOBLOCKDMRG, DoDMRG, DoFaro, DoFCIDump, ECAS, EMY, Ener, ESX, ExFac, FDIAG, HalfQ, &
-                         iAdr15, iBLBM, ICICH, iCIOnly, iCIRST, iExpand, IfCrPr, InOCalc, IPCMROOT, iPr, iPT2, iRLXRoot, iRoot, &
-                         iSave_Exp, iSymBB, ITER, ITERCI, ITERSX, JBLBM, KSDFT, KSDFT_Temp, l_casdft, lSquare, MaxIt, NAC, NACPAR, &
-                         NACPR2, NewFock, nFint, no2m, NonEQ, nROOTS, PotNuc, QNSTEP, QNUPDT, ROTMax, Start_Vectors, SXShft, Thre, &
-                         ThrSX, THRTE, TMin, Tot_Charge, VIA_DFT, Weight
+use rasscf_global, only: CBLBM, CMAX, Conv, DE, DoDMRG, DoFCIDump, ECAS, EMY, Ener, ESX, ExFac, FDIAG, HalfQ, iAdr15, iBLBM, &
+                         ICICH, iCIOnly, iCIRST, iExpand, IfCrPr, InOCalc, IPCMROOT, iPr, iPT2, iRLXRoot, iRoot, iSave_Exp, &
+                         iSymBB, ITER, ITERCI, ITERSX, JBLBM, KSDFT, KSDFT_Temp, l_casdft, lSquare, MaxIt, NAC, NACPAR, NACPR2, &
+                         NewFock, nFint, no2m, NonEQ, nROOTS, PotNuc, QNSTEP, QNUPDT, ROTMax, Start_Vectors, SXShft, Thre, ThrSX, &
+                         THRTE, TMin, Tot_Charge, VIA_DFT, Weight,  NALTER, CRPROJ, CRVec, NCRVEC, INVEC, CleanMask
 use PrintLevel, only: DEBUG, TERSE, USUAL
 use output_ras, only: IPRLOC, RC_CI, RC_SX
-use general_data, only: CleanMask, CRPROJ, CRVec, INVEC, ISPIN, ITERFILE, JOBIPH, NALTER, NASH, NBAS, NCONF, NCRVEC, NDEL, NFRO, &
-                        NISH, NRS1, NRS2, NRS3, NSYM, NTOT, NTOT1, NTOT2
+use rasscf_files, only: ITERFILE, JOBIPH
+use general_data, only: iDOGAS, ISPIN, NASH, NBAS, NCONF, NDEL, NFRO, NISH, NRS1, NRS2, NRS3, NSYM, NTOT, NTOT1, NTOT2
 use DWSol, only: DWSol_final, DWSol_init, DWSolv
-use Molcas, only: MxRoot
-use RASDim, only: MxIter
+#if defined (_ENABLE_BLOCK_DMRG_) || defined (_ENABLE_CHEMPS2_DMRG_) || defined (_ENABLE_DICE_SHCI_)
+use rasscf_global, only: DOBLOCKDMRG
+#endif
 #ifdef _DMRG_
 use qcmaquis_interface, only: dmrg_energy, qcmaquis_interface_deinit, qcmaquis_interface_delete_chkp, &
                               qcmaquis_interface_prepare_hirdm_template, qcmaquis_param, TEMPLATE_4RDM, TEMPLATE_TRANSITION_3RDM
 use qcmaquis_interface_mpssi, only: qcmaquis_mpssi_transform
-use lucia_data, only: RF1, RF2
-use rasscf_global, only: DoDelChk, DoMCPDFTDMRG, DoNEVPT2Prep, Twordm_qcm
+use rasscf_global, only: DoDelChk, DoMCPDFTDMRG, DoNEVPT2Prep, RF1, RF2, Twordm_qcm
+use general_data, only: NACTEL
 #endif
 #ifdef _FDE_
-use Embedding_global, only: Eemb, embInt, embPot, embPotInBasis, embPotPath, embWriteEsp
+use Embedding_global, only: Eemb, embInt, embPot, embPotInBasis, embPotPath, embWriteDens, embWriteEsp
 #endif
 #ifdef _HDF5_
 use mh5, only: mh5_put_attr, mh5_put_dset
-use csfbas, only: CONF
-use lucia_data, only: CFTP, DStmp, Dtmp
+use ci_interfaces, only: Mk_T1DM
+use sguga, only: sg_reord
 use raswfn, only: wfn_energy, wfn_iter, wfn_transdens, wfn_transsdens
 use rasscf_global, only: lRoots
-use general_data, only: NACTEL, STSYM
+use general_data, only: STSYM
 #endif
 use stdalloc, only: mma_allocate, mma_deallocate
 use Constants, only: Zero, One
@@ -125,8 +126,7 @@ real(kind=wp), allocatable :: CMON(:), Dens(:), EDUM(:), Fock(:), folded_Fock(:)
                               Scr1(:), Scr2(:), SMat(:), Tmp1(:), TmpD1S(:), TmpDMat(:), TmpDS(:)
 #ifdef _HDF5_
 integer(kind=iwp) :: iDX, jDisk, jRoot, kDisk
-integer(kind=iwp), allocatable :: kcnf(:)
-real(kind=wp), allocatable :: Tmp(:), VecL(:), VecR(:)
+real(kind=wp), allocatable :: DStmp(:), Dtmp(:), Tmp(:), VecL(:), VecR(:), XTmp(:)
 #endif
 #ifdef _FDE_
 integer(kind=iwp) :: iDummyEmb, iEmb, iUnit, nNuc
@@ -138,6 +138,7 @@ real(kind=wp) :: maxtrW
 logical(kind=iwp) :: Do_ESPF
 logical(kind=iwp), external :: PCM_On
 #endif
+integer(kind=iwp), parameter :: iState = 1
 integer(kind=iwp), external :: IsFreeUnit, isStructure
 real(kind=wp), external :: Get_ExFac
 #include "warnings.h"
@@ -694,7 +695,7 @@ if ((.not. Key('ORBO')) .and. (MAXIT /= 0)) then
                        F_IN=FI(:), &
                        orbital_E=orbital_E, &
                        folded_Fock=folded_Fock)
-        call make_fcidumps('FCIDUMP','H5FCIDUMP',orbital_E,folded_Fock,TUVX=tuvx(:),core_energy=EMY)
+        call make_fcidumps('FCIDUMP','H5FCIDUMP',orbital_E,folded_Fock,TUVX=tuvx(:),core_energy=EMY,fort55_path='fort.55')
         call mma_deallocate(orbital_E)
         call mma_deallocate(folded_Fock)
         write(u6,*) 'FCIDMP file generated. Here for serving you!'
@@ -722,7 +723,7 @@ if ((.not. Key('ORBO')) .and. (MAXIT /= 0)) then
         call DMRGCTL(CMO,DMAT,DSPN,PMAT,PA,FI,D1I,D1A,TUVX,IFINAL,0)
 #     endif
       else
-        call CICTL(CMO,DMAT,DSPN,PMAT,PA,FI,FA,D1I,D1A,TUVX,IFINAL)
+        call CICTL(CMO,DMAT,DSPN,PMAT,PA,FI,FA,D1I,D1A,size(TUVX),TUVX,IFINAL)
 
         if (dofcidump) then
           write(u6,*) ' FCIDUMP file generated. This is the end...'
@@ -982,7 +983,7 @@ if ((.not. Key('ORBO')) .and. (MAXIT /= 0)) then
         call DMRGCTL(CMO,DMAT,DSPN,PMAT,PA,FI,D1I,D1A,TUVX,IFINAL,1)
 #     endif
       else
-        call CICTL(CMO,DMAT,DSPN,PMAT,PA,FI,FA,D1I,D1A,TUVX,IFINAL)
+        call CICTL(CMO,DMAT,DSPN,PMAT,PA,FI,FA,D1I,D1A,size(TUVX),TUVX,IFINAL)
       end if
 
       ! call triprt('twxy',' ',TUVX,nTri_Elem(nAc))
@@ -1512,7 +1513,7 @@ if ((.not. Key('ORBO')) .and. (MAXIT /= 0)) then
       !continue
 #   endif
     else
-      call CICTL(CMO,DMAT,DSPN,PMAT,PA,FI,FA,D1I,D1A,TUVX,IFINAL)
+      call CICTL(CMO,DMAT,DSPN,PMAT,PA,FI,FA,D1I,D1A,size(TUVX),TUVX,IFINAL)
     end if
     if (lRF .and. ((iPCMRoot <= 0) .or. (DWSolv%DWZeta /= Zero))) then
       IAD15 = IADR15(6)
@@ -1560,6 +1561,13 @@ if ((.not. Key('ORBO')) .and. (MAXIT /= 0)) then
     call NATORB_RASSCF(CMO,scr1,scr2,SMAT,CMON,OCCX)
     call mma_deallocate(scr1)
     call mma_deallocate(scr2)
+#   ifdef _FDE_
+    if (embpot .and. embWriteDens) then
+      call embPotDensGrid(CMON,OCCX,NTOT,NTOT2)
+      Eemb = embPotEneMODensities(D1I,D1A,embInt,nBas,nTot2,nSym)
+      call embPotWriteResults('EMBRES',ENER(1,ITER),Eemb,sum(OCCX))
+    end if
+#   endif
     !PAM2009 Deallocate CMON, OCCX.
     call mma_deallocate(CMON)
     call mma_deallocate(OCCX)
@@ -1570,7 +1578,6 @@ if ((.not. Key('ORBO')) .and. (MAXIT /= 0)) then
       call mma_allocate(Tmp,NConf,Label='Tmp')
       call mma_allocate(VecL,NConf,Label='VecL')
       call mma_allocate(VecR,NConf,Label='VecR')
-      call mma_allocate(kcnf,NACTEL,Label='kcnf')
       call mma_allocate(Dtmp,NAC*NAC,Label='Dtmp')
       call mma_allocate(DStmp,NAC*NAC,Label='DStmp')
       jDisk = IADR15(4)
@@ -1578,14 +1585,22 @@ if ((.not. Key('ORBO')) .and. (MAXIT /= 0)) then
       do jRoot=2,lRoots
         ! Read and reorder the left CI vector
         call DDafile(JOBIPH,2,Tmp,nConf,jDisk)
-        call Reord2(NAC,NACTEL,STSYM,1,CONF,CFTP,Tmp,VecL,kcnf)
+        call SG_Reord(iState,STSYM,1,nConf,Tmp,VecL)
         kDisk = IADR15(4)
         do kRoot=1,jRoot-1
           ! Read and reorder the right CI vector
           call DDafile(JOBIPH,2,Tmp,nConf,kDisk)
-          call Reord2(NAC,NACTEL,STSYM,1,CONF,CFTP,Tmp,VecR,kcnf)
+          call SG_Reord(iState,STSYM,1,nConf,Tmp,VecR)
           ! Compute TDM and store in h5 file
-          call Lucia_Util('Densi',CI_Vector=VecL(:),RVec=VecR(:))
+          call Mk_T1DM(VECR(:),VECL(:),nConf,DTMP,NAC**2,DSTMP)
+          call mma_allocate(XTmp,NAC**2,Label='XTmp')
+          XTmp(:) = abs(DTMP(:))
+          call add_info('TDM',XTMP,NAC**2,6)
+          if (iSpin > 1) then
+             XTmp(:) = abs(DSTMP(:))
+             call add_info('TSDM',XTMP,NAC**2,6)
+          end if
+          call mma_deallocate(XTmp)
           idx = (jRoot-2)*(jRoot-1)/2+kRoot
           call mh5_put_dset(wfn_transdens,Dtmp(1:NAC*NAC),[NAC,NAC,1],[0,0,idx-1])
           if (iSpin > 1) call mh5_put_dset(wfn_transsdens,DStmp(1:NAC**2),[NAC,NAC,1],[0,0,idx-1])
@@ -1594,7 +1609,6 @@ if ((.not. Key('ORBO')) .and. (MAXIT /= 0)) then
       call mma_deallocate(TMP)
       call mma_deallocate(VecL)
       call mma_deallocate(VecR)
-      call mma_deallocate(kcnf)
       call mma_deallocate(Dtmp)
       call mma_deallocate(DStmp)
 #     else
@@ -1659,9 +1673,7 @@ if ((.not. Key('ORBO')) .and. (MAXIT /= 0)) then
     end if
 #   endif
 
-    if (ITERM /= 99) then
-        call OUTCTL(CMO,OCCN,SMAT,lOPTO)
-    end if
+    if (ITERM /= 99) call OUTCTL(CMO,OCCN,SMAT,lOPTO)
 
     call mma_deallocate(SMAT)
 
@@ -1695,6 +1707,9 @@ if ((.not. Key('ORBO')) .and. (MAXIT /= 0)) then
   call mma_deallocate(D1A)
   call mma_deallocate(OccN)
   call mma_deallocate(CMO)
+# ifdef _FDE_
+  if (embpot) call mma_deallocate(embInt)
+# endif
 # ifdef _DMRG_
   ! Free RDMs for the reaction field reference root in QCMaquis calculations
   if (doDMRG .and. PCM_On()) then
@@ -1735,9 +1750,6 @@ end if
 !end do
 call mma_deallocate(CleanMask,safe='*')
 
-! Skip Lucia stuff if NECI or BLOCK-DMRG is on
-if (.not. any([allocated(CI_solver),DumpOnly,doDMRG,doBlockDMRG])) call Lucia_Util('CLOSE')
-
 call StatusLine('RASSCF: ','Finished.')
 if (IPRLEV >= 2) write(u6,*)
 if (ifvb == 1) call make_close_rvb()
@@ -1748,7 +1760,7 @@ call Timing(dum1,dum2,time1(2),dum3)
 TimeTotal = time1(2)
 TimeOutput = TimeOutput+time1(2)-time1(1)
 if (IPRLEV >= 3) then
-  call PrtTim()
+  call CI_Timer('Print')
   call FastIO('STATUS')
 end if
 call ClsFls_RASSCF()
@@ -1777,12 +1789,8 @@ if (Do_OFemb) then
   end if
 end if
 
-if (.not. (iDoGas .or. doDMRG .or. doBlockDMRG .or. allocated(CI_solver) .or. DumpOnly)) call SG_Free(SGS,CIS,EXS)
-
-if (DoFaro) then
-  call faroald_free()
-  call citrans_free()
-end if
+! Release the CI environment
+call CI_Close(istate)
 
 if (allocated(CI_solver)) then
   call CI_solver%cleanup()
@@ -1836,8 +1844,6 @@ end if
 
 call Finalize()
 
-return
-
 #ifdef _DMRG_
 103 format(6X,I3,I3,I4,I7,ES12.2,I4,I5,F15.8,ES12.2,A1,ES9.2,A1,2I4,I2,ES10.2,A1,F6.2,F7.2,4X,A2,3X,A3,I7,A1,I2.2,A1,I2.2)
 #endif
@@ -1861,7 +1867,7 @@ subroutine Finalize()
 
   if (IfVB /= 2) then
     do I=10,99
-      inquire(unit=I,opened=IfOpened)
+      inquire(I,opened=IfOpened)
       if (IfOpened .and. (I /= 19)) close(I)
     end do
     close(LUInput)

@@ -12,7 +12,7 @@
 subroutine INPPRC()
 
 use Index_Functions, only: nTri_Elem
-use rasdef, only: NRS1, NRS1T, NRS2, NRS2T, NRS3, NRS3T
+use general_data, only: NRS1, NRS1T, NRS2, NRS2T, NRS3, NRS3T
 use rassi_global_arrays, only: ESHFT, HAM, HDIAG, JBNUM, LROOT
 use rassi_aux, only: AO_Mode, CMO1, CMO2, DMAB, ipglob, jDisk_TDM, JOB_INDEX, mTRA
 use rassi_data, only: NASH, NASHT, NBASF, NBMX, NBSQ, NBSQPR, NBST, NBTRI, NCMO, NISH, NISHT, NOSH, NSSH, NSSHT, NTDMAB, NTDMZZ, &
@@ -157,17 +157,6 @@ if (IRC == 0) then
       IPRP = IPRP+1
       LABEL2 = LABEL
       LABEL2(1:4) = 'ASDO'
-      PRPLST(IPRP) = LABEL2
-      ICMPLST(IPRP) = ICMP
-      IPUSED(IPRP) = 0
-    end if
-
-    ! Now the ASD are calculated from X2C magnetic integrals
-    if ((LABEL(1:5) == 'MAGXP') .and. (ICMP <= 6)) then
-      if (IPRP >= MXPROP) exit
-      IPRP = IPRP+1
-      LABEL2 = LABEL
-      LABEL2(1:5) = 'ASD  '
       PRPLST(IPRP) = LABEL2
       ICMPLST(IPRP) = ICMP
       IPUSED(IPRP) = 0
@@ -632,7 +621,7 @@ end do
 do IPRP=1,NPRPLST
   if (IPUSED(IPRP) == 0) then
     do IPROP=1,NPROP
-      if (PNAME(IPROP) == PRPLST(IPRP)) PNAME(IPROP) = 'REMOVE'
+      if (PNAME(IPROP) == PRPLST(IPRP) .and. (ICOMP(IPROP) == ICMPLST(IPRP))) PNAME(IPROP) = 'REMOVE'
     end do
   else
     IADD = 1
@@ -673,7 +662,7 @@ NPROP = MPROP
 do IPRP=1,NPRPLST
   if (IPUSED(IPRP) == 0) then
     do ISOPR=1,NSOPR
-      if (SOPRNM(ISOPR) == PRPLST(IPRP)) SOPRNM(ISOPR) = 'REMOVE'
+      if (SOPRNM(ISOPR) == PRPLST(IPRP)  .and. (ISOCMP(ISOPR) == ICMPLST(IPRP))) SOPRNM(ISOPR) = 'REMOVE'
     end do
   else
     IADD = 1
@@ -732,7 +721,7 @@ do IPROP=1,NPROP
       ! check partial labels
       if (PNAME(IPROP)(1:4) == 'PSOP') then
         PTYPE(IPROP) = 'ANTISING'
-      else if (PNAME(IPROP)(1:3) == 'ASD') then
+      else if (PNAME(IPROP)(1:5) == 'MAGXP') then
         PTYPE(IPROP) = 'HERMTRIP'
       else
         ! default value
@@ -754,7 +743,7 @@ do ISOPR=1,NSOPR
       ! check partial labels
       if (SOPRNM(ISOPR)(1:4) == 'PSOP') then
         SOPRTP(ISOPR) = 'ANTISING'
-      else if (SOPRNM(ISOPR)(1:3) == 'ASD') then
+      else if (SOPRNM(ISOPR)(1:5) == 'MAGXP') then
         SOPRTP(ISOPR) = 'HERMTRIP'
       else
         ! default value

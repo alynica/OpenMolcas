@@ -1108,6 +1108,9 @@ if (CUBLAS OR NVBLAS)
     # CUDA needs to link to the C++ standard library, so enable CXX here to
     # be able to use it as a linker later on for the program executables
     enable_language (CXX)
+    enable_language (CUDA)
+    set (CMAKE_CUDA_STANDARD 14)
+    set (CMAKE_CUDA_STANDARD_REQUIRED ON)
 
     add_compile_definitions (_CUDA_BLAS_)
 
@@ -1191,13 +1194,22 @@ else ()
   # TODO: Solving this will require creating a wrapper main project that includes
   #       both Libxc and OpenMolcas as ExternalProject. This could also simplify
   #       the handling of other codes like GlobalArrays or QCMaquis.
+  set (Libxc_C_FLAGS ${CMAKE_C_FLAGS_DEFAULT})
+  if (CMAKE_C_COMPILER_ARG1)
+    set (Libxc_C_FLAGS "${CMAKE_C_COMPILER_ARG1} ${Libxc_C_FLAGS}")
+  endif ()
+  set (Libxc_Fortran_FLAGS ${CMAKE_Fortran_FLAGS_DEFAULT})
+  if (CMAKE_Fortran_COMPILER_ARG1)
+    set (Libxc_Fortran_FLAGS "${CMAKE_Fortran_COMPILER_ARG1} ${Libxc_Fortran_FLAGS}")
+  endif ()
   list (APPEND LibxcCMakeArgs
         -D CMAKE_BUILD_TYPE=${LIBXC_BUILD_TYPE}
         -D CMAKE_INSTALL_PREFIX=${EP_INSTALL}
         -D BUILD_SHARED_LIBS=NO
         -D CMAKE_C_COMPILER=${CMAKE_C_COMPILER}
         -D CMAKE_Fortran_COMPILER=${CMAKE_Fortran_COMPILER}
-        -D CMAKE_Fortran_FLAGS=${CMAKE_Fortran_FLAGS_DEFAULT}
+        -D CMAKE_C_FLAGS=${Libxc_C_FLAGS}
+        -D CMAKE_Fortran_FLAGS=${Libxc_Fortran_FLAGS}
         -D CMAKE_INSTALL_LIBDIR=lib
         -D ENABLE_FORTRAN=ON
         -D ENABLE_PYTHON=OFF
@@ -1327,6 +1339,14 @@ if (GA AND MPI)
 
     target_files (LINALG_LIBRARIES_FILES ${LINALG_LIBRARIES})
     string (REPLACE ";" "|" LINALG_LIBRARIES_FILES "${LINALG_LIBRARIES_FILES}")
+    set (GA_C_FLAGS ${CMAKE_C_FLAGS_DEFAULT})
+    if (CMAKE_C_COMPILER_ARG1)
+      set (GA_C_FLAGS "${CMAKE_C_COMPILER_ARG1} ${GA_C_FLAGS}")
+    endif ()
+    set (GA_Fortran_FLAGS ${CMAKE_Fortran_FLAGS_DEFAULT})
+    if (CMAKE_Fortran_COMPILER_ARG1)
+      set (GA_Fortran_FLAGS "${CMAKE_Fortran_COMPILER_ARG1} ${GA_Fortran_FLAGS}")
+    endif ()
     list (APPEND GACMakeArgs
           -D CMAKE_BUILD_TYPE=${GA_BUILD_TYPE}
           -D CMAKE_INSTALL_PREFIX=${EP_INSTALL}
@@ -1334,6 +1354,8 @@ if (GA AND MPI)
           -D BUILD_SHARED_LIBS=${BUILD_SHARED_LIBS}
           -D CMAKE_C_COMPILER=${CMAKE_C_COMPILER}
           -D CMAKE_Fortran_COMPILER=${CMAKE_Fortran_COMPILER}
+          -D CMAKE_C_FLAGS=${GA_C_FLAGS}
+          -D CMAKE_Fortran_FLAGS=${GA_Fortran_FLAGS}
           -D GCCROOT=${GCCROOT}
           -D CMAKE_INSTALL_LIBDIR=lib
           -D ENABLE_FORTRAN=ON
@@ -2305,6 +2327,7 @@ if (HDF5 AND HDF5_FOUND)
     aniso_util
     gateway_util
     hyper_util
+    localisation_util
     molcas_ci_util
     msym_util
     oneint_util

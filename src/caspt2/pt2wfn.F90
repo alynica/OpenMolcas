@@ -41,17 +41,18 @@ subroutine pt2wfn_init()
 # ifdef _HDF5_
   use refwfn, only: refwfn_is_h5
   use mh5, only: mh5_close_dset, mh5_create_dset_real, mh5_create_dset_str, mh5_create_file, mh5_init_attr, mh5_put_dset
-  use sguga, only: L2ACT, LEVEL
+  use sguga, only: SGS
+  use general_data, only: iSpin, nActEl, nElec3, nHole1, STSym
   use caspt2_global, only: do_grad
-  use caspt2_module, only: DMRG, IfMix, IfMSCOUP, IfProp, iSpin, lRoots, mState, nActEl, nBas, nBasT, nBSqT, nConf, nDel, nDet, &
-                           nEle3, nFro, nHole1, nIsh, nOrb, nRas1, nRas1T, nRas2, nRas3, nRas3T, nSsh, nState, nSym, Root2State, &
-                           STSym
+  use caspt2_module, only: DMRG, IfMix, IfMSCOUP, IfProp, lRoots, mState, nBas, nBasT, nBSqT, nConf, nDel, nDet, nFro, nIsh, nOrb, &
+                           nRas1, nRas1T, nRas2, nRas3, nRas3T, nSsh, nState, nSym, Root2State
   use stdalloc, only: mma_allocate, mma_deallocate
 # endif
 
 # ifdef _HDF5_
   integer(kind=iwp) :: dsetid, ndmat
   character, allocatable :: typestring(:)
+  integer(kind=iwp), parameter :: istate = 1
 # endif
 
   if (refwfn_active) then
@@ -88,13 +89,13 @@ subroutine pt2wfn_init()
     call mh5_init_attr(pt2wfn_id,'LSYM',stSym)
     call mh5_init_attr(pt2wfn_id,'NACTEL',nActEl)
     call mh5_init_attr(pt2wfn_id,'NHOLE1',nHole1)
-    call mh5_init_attr(pt2wfn_id,'NELEC3',nEle3)
+    call mh5_init_attr(pt2wfn_id,'NELEC3',nElec3)
     call mh5_init_attr(pt2wfn_id,'NCONF',nConf)
     call mh5_init_attr(pt2wfn_id,'NSTATES',NSTATE)
     call mh5_init_attr(pt2wfn_id,'NDET',NDET)
 
-    call mh5_init_attr(pt2wfn_id,'L2ACT',1,[mxAct],L2ACT)
-    call mh5_init_attr(pt2wfn_id,'A2LEV',1,[mxAct],LEVEL)
+    call mh5_init_attr(pt2wfn_id,'L2ACT',1,[mxAct],SGS(istate)%L2ACT)
+    call mh5_init_attr(pt2wfn_id,'A2LEV',1,[mxAct],SGS(istate)%LEVEL)
 
     ! molecular orbital type index
     call mma_allocate(typestring,nbast)

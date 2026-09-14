@@ -13,14 +13,13 @@
 
 subroutine Proc_Inp(DSCF,lOPTO,iRc)
 
+use ci_interfaces, only: CI_Initialize
 use Index_Functions, only: nTri_Elem
 use fortran_strings, only: to_upper, operator(.in.)
-use csfbas, only: CONF
-use lucia_data, only: CFTP
 use Fock_util_global, only: DoCholesky
 use Cholesky, only: ChFracMem
 use write_orbital_files, only: OrbFiles, write_orb_per_iter
-use fcidump, only: DumpOnly
+use fcidump, only: DumpOnly, DmpMode
 use fcidump_reorder, only: ReOrFlag, ReOrInp
 use fciqmc, only: DoEmbdNECI, DoNECI, tGUGA_in, tNonDiagStochPT2, tPrepStochCASPT2
 use fciqmc_read_RDM, only: MCM7, WRMA
@@ -34,29 +33,25 @@ use KSDFT_Info, only: CoefR, CoefX
 use OFembed, only: dFMD, Do_OFemb, KEonly, OFE_KSDFT, ThrFThaw, Xsigma
 use CMS, only: CMSGiveOpt, CMSGuessFile, iCMSOpt
 use UnixInfo, only: SuperName
-use Lucia_Interface, only: Lucia_Util
-use gas_data, only: iDoGAS, IGSOCCX, NGAS, NGSSH
 use Symmetry_info, only: Mul
 use PrintLevel, only: DEBUG, TERSE, VERBOSE
 use output_ras, only: IPRGLB, IPRLOC
-use general_data, only: CleanMask, CRPROJ, CRVec, INVEC, ISPIN, JOBIPH, JOBOLD, LOWDIN_ON, LUSTARTORB, MALTER, MAXALTER, NACTEL, &
-                        NALTER, NASH, NBAS, NCONF, NCRVEC, NDEL, NDELT, NELEC3, NFRO, NFROT, NHOLE1, NISH, NORB, NRS1, NRS1T, &
-                        NRS2, NRS2T, NRS3, NRS3T, NSEL, NSSH, NSYM, NTOT, NTOT1, NTOT2, NTOTSP, STARTORBFILE, STSYM, SXDAMP
-use spinfo, only: I2ELIMINATED_IN_GAS_MOLCAS, I_ELIMINATE_GAS_MOLCAS, IELIMINATED_IN_GAS_MOLCAS, IEXPAND_MOLCAS, IGSOCCX_MOLCAS, &
-                  INOCALC_MOLCAS, IPRCI_MOLCAS, IPT2_MOLCAS, ISAVE_EXP_MOLCAS, ISPEED, ISPIN_MOLCAS, ITMAX_MOLCAS, LSYM_MOLCAS, &
-                  MS2, MS2_MOLCAS, N_2ELIMINATED_GAS_MOLCAS, N_ELIMINATED_GAS_MOLCAS, NACTEL_MOLCAS, NCSASM, NDET, NDTASM, &
-                  NGAS_MOLCAS, NGSSH_MOLCAS, NROOTS_MOLCAS, NSYM_MOLCAS, POTNUC_MOLCAS, THRE_MOLCAS
+use rasscf_files, only: JOBIPH, JOBOLD, LUSTARTORB, STARTORBFILE
+use general_data, only: iDoGAS, IGSOCCX, ISPIN, NACTEL, NASH, NBAS, NCONF, NDEL, NDELT, NELEC3, NFRO, NFROT, NGAS, NGSSH, NHOLE1, &
+                        NISH, NORB, NRS1, NRS1T, NRS2, NRS2T, NRS3, NRS3T, NSEL, NSSH, NSYM, NTOT, NTOT1, NTOT2, NTOTSP, STSYM
+use spinfo, only: I2ELIMINATED_IN_GAS, I_ELIMINATE_GAS, IELIMINATED_IN_GAS, N_2ELIMINATED_GAS, N_ELIMINATED_GAS
 use DWSol, only: DWSol_DWRO
 use Molcas, only: LenIn, MxAct, MxOrb, MxRoot, MxSym
 use RASDim, only: MxRef, MxTit
 use input_ras, only: Key, LUInput, SetKey
-use rasscf_global, only: CCI, CMSStartMat, CMSThreshold, CoreShift, DFTFOCK, DoBLOCKDMRG, DoFaro, DoFCIDump, ExFac, HFOCC, HFOcc, &
-                         hRoots, iAlphaBeta, ICI, ICICH, iCIonly, iCIRFROOT, iCIRST, iCMSITERMAX, iCMSITERMin, iCMSP, iExpand, &
-                         IfCRPR, iFORDE, InOCalc, iOrbOnly, iOrbTyp, iOrdEM, iOverWr, iPCMRoot, iPhName, iPR, iPT2, IRLXROOT, &
-                         IROOT, iRotPsi, iSave_Exp, iSCF, iSPDEN, iSupSM, ITCORE, ITMAX, IXMSP, ixSym, iZRot, JCJ, kivo, KSDFT, &
-                         kTight, l_CASDFT, LowMS, LROOTS, LvShft, MaxIt, MaxJt, MaxOrbOut, n_keep, NAC, NACPAR, NACPR2, NFR, NIN, &
-                         NO2M, NonEq, NORBT, NQUNE, NROOTS, NSEC, NTOT3, NTOT4, OutFmt1, OutFmt2, PotNuc, PreThr, PreThr, ProThr, &
-                         PrwThr, Purify, RFPert, S, SXSEL, ThFact, ThrE, ThrEn, ThrSX, ThrTE, Title, Weight
+use rasscf_global, only: CCI, CleanMask, CMSStartMat, CMSThreshold, CoreShift, CRPROJ, CRVEC, DFTFOCK, DoBLOCKDMRG, DoDMRG, &
+                         DoFaro, DoFCIDump, ExFac, HFOCC, HFOcc, hRoots, iAlphaBeta, ICI, ICICH, iCIonly, iCIRFROOT, iCIRST, &
+                         iCMSITERMAX, iCMSITERMin, iCMSP, iExpand, IfCRPR, iFORDE, InOCalc, INVEC, iOrbOnly, iOrbTyp, iOrdEM, &
+                         iOverWr, iPCMRoot, iPhName, iPT2, IRLXROOT, IROOT, iRotPsi, iSave_Exp, iSCF, iSPDEN, iSupSM, ITCORE, &
+                         ITMAX, IXMSP, ixSym, iZRot, JCJ, kivo, KSDFT, kTight, l_CASDFT, LOWDIN_ON, LowMS, LROOTS, LvShft, MALTER, &
+                         MAXALTER, MaxIt, MaxJt, MaxOrbOut, n_keep, NAC, NACPAR, NACPR2, NALTER, NCRVEc, NFR, NIN, NO2M, NonEq, &
+                         NORBT, NQUNE, NROOTS, NSEC, NTOT3, NTOT4, OutFmt1, OutFmt2, PreThr, PreThr, ProThr, PrwThr, Purify, &
+                         RFPert, S, SXDAMP, SXSEL, ThFact, ThrE, ThrEn, ThrSX, ThrTE, Title, Weight
 #ifdef _ENABLE_DICE_SHCI_
 use rasscf_global, only: dice_eps1, dice_eps2, dice_iter, dice_restart, dice_sampleN, dice_stoc, diceOcc, nRef_dice
 #endif
@@ -68,7 +63,7 @@ use rasscf_global, only: ChemPS2_BLB, ChemPS2_Can, ChemPS2_lRestart, ChemPS2_No4
 use qcmaquis_interface_cfg, only: dmrg_input, qcmaquis_param
 use qcmaquis_interface, only: qcmaquis_interface_init, qcmaquis_interface_set_param, qcmaquis_interface_stdout, remove_comment
 use active_space_solver_cfg, only: as_solver_inp_proc
-use rasscf_global, only: DoDMRG, DoMCPDFTDMRG, DoNEVPT2Prep, MPSCompressM, Twordm_qcm
+use rasscf_global, only: DoMCPDFTDMRG, DoNEVPT2Prep, MPSCompressM, Twordm_qcm
 #ifdef _MOLCAS_MPP_
 use Para_Info, only: mpp_nprocs, mpp_procid
 #endif
@@ -99,7 +94,7 @@ character(len=2*72) :: lJobH2
 character(len=72) :: JobTit(mxTit), ReadStatus
 character(len=50) :: ON_scheme_inp, uppercased
 character(len=8) :: InfoLbl, MaxLab, NewJobIphName
-integer(kind=iwp), allocatable :: iType(:), Stab(:), Temp1(:), Temp2(:), Temp3(:), UG2SG_X(:)
+integer(kind=iwp), allocatable :: initial_occ(:,:), iType(:), Stab(:), Temp1(:), Temp2(:), Temp3(:)
 real(kind=wp), allocatable :: ENC(:), RF(:)
 character(len=:), allocatable :: buffer
 #ifdef _ENABLE_DICE_SHCI_
@@ -110,7 +105,6 @@ integer(kind=iwp) :: LRras2_dmrg(8), nr_lines
 character(len=256) :: WorkDir
 character(len=72) :: ProjectName
 character(len=20) :: guess_dmrg
-integer(kind=iwp), allocatable :: initial_occ(:,:)
 #endif
 #ifdef _HDF5_
 integer(kind=iwp) :: lRoots_l, mh5id
@@ -121,16 +115,6 @@ real(kind=wp), external :: Get_ExFac
 logical(kind=iwp), external :: Is_First_Iter
 character(len=180), external :: Get_LN
 #include "warnings.h"
-interface
-  subroutine SG_Setup_RASSCF(DBG,SkipGUGA,initial_occ)
-    import :: iwp
-    logical(kind=iwp), intent(inout) :: DBG, SkipGUGA
-    integer(kind=iwp), allocatable, optional, intent(inout) :: initial_occ(:,:)
-  end subroutine SG_Setup_RASSCF
-end interface
-
-!...Dongxia note for GAS:
-!   No changing about read in orbital information from INPORB yet.
 
 DoFaro = .false.
 
@@ -560,10 +544,10 @@ else
     if (index(Line,'COMP') /= 0) OutFmt2 = 'COMPACT'
     if (index(Line,'FULL') /= 0) OutFmt2 = 'FULL'
     if ((OutFmt1 == 'DEFAULT') .and. (OutFmt2 == 'DEFAULT')) then
-      call WarningMessage(1,'Error in ''OUTP'' command?')
+      call WarningMessage(1,'Error in "OUTP" command?')
       write(u6,*) ' Input line is:'
       write(u6,*) Line
-      write(u6,*) ' Did not understand ''OUTP'' input. Ignored.'
+      write(u6,*) ' Did not understand "OUTP" input. Ignored.'
     end if
   end if
   !---  Process PROR (Print levels for orbitals) command
@@ -613,10 +597,10 @@ else
     if (index(Line,'NOCO') /= 0) OutFmt1 = 'NOCORE  '
     if (index(Line,'ALL') /= 0) OutFmt1 = 'ALL     '
     if (OutFmt1 == 'DEFAULT ') then
-      call WarningMessage(1,'Error in ''ORBL'' command?')
+      call WarningMessage(1,'Error in "ORBL" command?')
       write(u6,*) ' Input line is:'
       write(u6,*) Line
-      write(u6,*) ' Did not understand ''OUTL'' input. Ignored.'
+      write(u6,*) ' Did not understand "OUTL" input. Ignored.'
     end if
   end if
   !---  Process ORBA keyword: Orbital Appearance
@@ -641,10 +625,10 @@ else
     if (index(Line,'COMP') /= 0) OutFmt2 = 'COMPACT '
     if (index(Line,'FULL') /= 0) OutFmt2 = 'FULL    '
     if (OutFmt2 == 'DEFAULT ') then
-      call WarningMessage(1,'Error in ''OUTA'' command?')
+      call WarningMessage(1,'Error in "OUTA" command?')
       write(u6,*) ' Input line is:'
       write(u6,*) Line
-      write(u6,*) ' Did not understand ''OUTA'' input. Ignored.'
+      write(u6,*) ' Did not understand "OUTA" input. Ignored.'
     end if
   end if
   !---  Process MAXO keyword: Max nr of state-specific orbital files produced
@@ -699,7 +683,7 @@ else
     if (index(Line,'NATU') /= 0) iOrbTyp = 3
     if (index(Line,'SPIN') /= 0) iOrbTyp = 4
     if (iOrbTyp == 0) then
-      write(u6,*) ' The line after keyword ''OUTORBITALS'' is'
+      write(u6,*) ' The line after keyword "OUTORBITALS" is'
       write(u6,*) ' not understood. That line begins:'
       write(u6,'(1x,a60)') line(1:60)
       write(u6,*) ' This input is IGNORED.'
@@ -816,7 +800,7 @@ else
     end do
     ! (SVC) get absolute orbital values for the alterations so that
     ! iMAlter is symmetry independent
-    if (DBG) write(u6,*) ' ''Absolute'' iMAlter indices:'
+    if (DBG) write(u6,*) ' "Absolute" iMAlter indices:'
     do iAlter=1,NAlter
       iEnd = 0
       iStart = 1
@@ -1489,7 +1473,7 @@ else
   if (Key('CISE')) then
     if (DBG) then
       write(u6,*) ' CISELECT keyword was given.'
-      write(u6,*) ' This input is awkward. Let''s find up'
+      write(u6,*) " This input is awkward. Let's find up"
       write(u6,*) ' a better way to do things.'
     end if
     ICICH = 1
@@ -1511,7 +1495,7 @@ else
       ReadStatus = ' O.K. reading after CISELECT keyword.'
       if (kRef > mxRef) then
         call WarningMessage(1,'CISElect input is wrong.')
-        write(u6,*) 'Number of CSF''s in CiSelect is out of bounds'
+        write(u6,*) "Number of CSF's in CiSelect is out of bounds"
         write(u6,'(a,i3,a,i3)') 'Specified:',kRef,', Max is',mxRef
         write(u6,'(a,i3)') 'Standard fixup, value set to',mxRef
         kRef = mxRef
@@ -1614,8 +1598,8 @@ else
     if (INVEC == 0) then
       if (IPRLEV >= TERSE) then
         call WarningMessage(2,'JOBIPH input is wrong.')
-        write(u6,*) ' Keyword JOBIPH was used, but the ''JOBOLD'' file'
-        write(u6,*) ' does not exist. The ''JOBIPH'' file named'
+        write(u6,*) ' Keyword JOBIPH was used, but the "JOBOLD" file'
+        write(u6,*) ' does not exist. The "JOBIPH" file named'
         write(u6,*) IPHNAME
         write(u6,*) 'also does not exist. This is a fatal error.'
         call Error(4)
@@ -2364,7 +2348,14 @@ else
   ! If spin is zero, do not compute and print spin density:
   if (ISPIN == 1) ISPDEN = 0
   ! ====================================================================
-  if (Key('DMPO')) DumpOnly = .true.
+  if (Key('DMPO')) then
+    DumpOnly = .true.
+    DmpMode = 0
+  end if
+  if (Key('DMPF')) then
+    DumpOnly = .true.
+    DmpMode = 1
+  end if
   ! ====================================================================
   if (Key('REOR')) then
     if (DBG) write(u6,*) 'Orbital Reordering (REOR) is activated'
@@ -2443,6 +2434,11 @@ else
 
     if (Key('DMPO')) then
       call WarningMessage(2,'NECI and DMPOnly are mutually exclusive.')
+      call Error(4)
+      return
+    end if
+    if (Key('DMPF')) then
+      call WarningMessage(2,'NECI and DMPF are mutually exclusive.')
       call Error(4)
       return
     end if
@@ -2699,6 +2695,11 @@ else
       call Error(4)
       return
     end if
+    if (Key('DMPF')) then
+      call WarningMessage(2,'CC-CI and DMPF are mutually exclusive.')
+      call Error(4)
+      return
+    end if
   end if
 
   ! ====================================================================
@@ -2800,14 +2801,14 @@ else
       call Error(1)
       return
     end if
-    if ((I_ELIMINATE_GAS_MOLCAS /= 0) .and. (I_ELIMINATE_GAS_MOLCAS /= 2)) then
+    if ((I_ELIMINATE_GAS /= 0) .and. (I_ELIMINATE_GAS /= 2)) then
       call WarningMessage(2,'HEXS keyword defined more than once')
       call Error(1)
       return
     end if
-    I_ELIMINATE_GAS_MOLCAS = I_ELIMINATE_GAS_MOLCAS+1
+    I_ELIMINATE_GAS = I_ELIMINATE_GAS+1
     ReadStatus = ' Failure reading data following HEXS keyword.'
-    read(LUInput,*,iostat=istatus) N_ELIMINATED_GAS_MOLCAS
+    read(LUInput,*,iostat=istatus) N_ELIMINATED_GAS
     if (istatus < 0) then
       call Error(2)
       return
@@ -2817,7 +2818,7 @@ else
     end if
     ReadStatus = ' O.K. after reading data following HEXS keyword.'
     ReadStatus = ' Failure reading data following HEXS keyword.'
-    read(LUInput,*,iostat=istatus) (IELIMINATED_IN_GAS_MOLCAS(I),I=1,N_ELIMINATED_GAS_MOLCAS)
+    read(LUInput,*,iostat=istatus) (IELIMINATED_IN_GAS(I),I=1,N_ELIMINATED_GAS)
     if (istatus < 0) then
       call Error(2)
       return
@@ -2836,14 +2837,14 @@ else
       call Error(1)
       return
     end if
-    if (I_ELIMINATE_GAS_MOLCAS > 1) then
+    if (I_ELIMINATE_GAS > 1) then
       call WarningMessage(2,'DEXS keyword defined more than once')
       call Error(1)
       return
     end if
-    I_ELIMINATE_GAS_MOLCAS = I_ELIMINATE_GAS_MOLCAS+2
+    I_ELIMINATE_GAS = I_ELIMINATE_GAS+2
     ReadStatus = ' Failure reading data following DEXS keyword.'
-    read(LUInput,*,iostat=istatus) N_2ELIMINATED_GAS_MOLCAS
+    read(LUInput,*,iostat=istatus) N_2ELIMINATED_GAS
     if (istatus < 0) then
       call Error(2)
       return
@@ -2853,7 +2854,7 @@ else
     end if
     ReadStatus = ' O.K. after reading data following DEXS keyword.'
     ReadStatus = ' Failure reading data following DEXS keyword.'
-    read(LUInput,*,iostat=istatus) (I2ELIMINATED_IN_GAS_MOLCAS(I),I=1,N_2ELIMINATED_GAS_MOLCAS)
+    read(LUInput,*,iostat=istatus) (I2ELIMINATED_IN_GAS(I),I=1,N_2ELIMINATED_GAS)
     if (istatus < 0) then
       call Error(2)
       return
@@ -3966,14 +3967,14 @@ if (Key('CIRE')) then
   iJOB = -1
   call f_Inquire('JOBOLD',lExists)
   if (lExists) then
-    if (DBG) write(u6,*) ' ''JOBOLD'' exists.'
+    if (DBG) write(u6,*) ' "JOBOLD" exists.'
     iJOB = 1
   else
     call f_Inquire(IPHNAME,lExists)
     if (lExists) then
       iJOB = 0
       if (DBG) then
-        write(u6,*) ' No ''JOBOLD'', but JOBIPH exists.'
+        write(u6,*) ' No "JOBOLD", but JOBIPH exists.'
         write(u6,*) ' It is named ',IPHNAME
       end if
     end if
@@ -4024,8 +4025,8 @@ twordm_qcm = domcpdftDMRG .or. (.not. Key('CION'))
 ! Setup part for DMRG calculations
 #ifdef _DMRG_
 if (Key('DMRG') .or. doDMRG) then
-  call getenvf('Project',ProjectName)
-  call getenvf('WorkDir',WorkDir)
+  call get_environment_variable('Project',ProjectName)
+  call get_environment_variable('WorkDir',WorkDir)
   ! Initialize the new interface
 
   ! in QCMaquis spins start with 0
@@ -4063,108 +4064,61 @@ call ChkInp()
 
 ! In DMRG-CASSCF, skip GUGA and LUCIA settings
 NCONF = 1
-SkipGUGA = DoBlockDMRG
+SkipGUGA = DoBlockDMRG .or. Key('DMRG') .or. doDMRG .or. DoNECI .or. Do_CC_CI .or. DumpOnly
+
+call mma_deallocate(initial_occ,safe='*')
 ! ======================================================================
 
-! Initiate the SGUGA environment conditional to all flags
+call Setup_RASSCF()
 
-#ifdef _DMRG_
-call SG_Setup_RASSCF(DBG,SkipGUGA,initial_occ)
-#else
-call SG_Setup_RASSCF(DBG,SkipGUGA)
-#endif
-
+if (DOFARO .and. (NSYM > 1)) then
+  write(u6,'(1X,A)') 'FARO keyword was used, but NSYM > 1,'
+  write(u6,'(1X,A)') 'switching to LUCIA as the CI backend.'
+  DOFARO = .false.
+endif
 ! ======================================================================
 
 if (.not. SkipGUGA) then
-  ! Construct the determinant tables
+  call StatusLine('RASSCF: ','Initializing Lucia/SGUGA/Faroald')
 
-  if (DBG) write(u6,*) ' Construct the determinant tables.'
-  MS2 = iSpin-1
+# ifdef _FAROALD_VERIFY_
+  ! Turn on the Faroald SD CI code in case of
+  ! 1) no symmetry
+  ! 2) not RASSCF or GASSCF
+  ! 3) not using the expert, the HEXS or the DEXS key word
+  ! 4) not running the CASVB module.
+  if ((nSym == 1) .and. &
+      ((nHole1 == 0) .and. (nElec3 == 0)) .and. &
+      (.not. iDoGas) .and. &
+      (.not. Key('HEXS')) .and. &
+      (.not. Key('DEXS')) .and. &
+      (.not. Key('EXPE')) .and. &
+      (IFVB == 0)) &
+    DoFaro = .true.
+# endif
 
-  ! Set variables needed in Lucia_Ini
-
-  ngssh_Molcas(:,:) = ngssh(:,:)
-  igsoccx_Molcas(:,:) = igsoccx(:,:)
-  potnuc_Molcas = potnuc
-  thre_Molcas = thre
-  nsym_Molcas = nsym
-  nactel_Molcas = nactel
-  ms2_Molcas = ms2
-  ispin_Molcas = ispin
-  lsym_Molcas = stsym
-  itmax_Molcas = itmax
-  nroots_Molcas = max(nroots,lRoots)
-  ipt2_Molcas = ipt2
-  iprci_molcas = iprloc(3)
-  ngas_molcas = ngas
-  INOCALC_MOLCAS = INOCALC
-  ISAVE_EXP_MOLCAS = ISAVE_EXP
-  IEXPAND_MOLCAS = IEXPAND
-
-  ! And call Lucia_Ini to initialize LUCIA
-
-  ! Combinations don't work for CASVB (at least yet)!
-  if (ifvb /= 0) iSpeed(1) = 0
-
-  if (.not. (Key('DMRG') .or. DoNECI .or. Do_CC_CI .or. DumpOnly)) then
-    ! switch on/off determinants
-#   ifdef _DMRG_
-    if (.not. doDMRG) then
-#   endif
-      ! Initialize LUCIA and determinant control
-      call StatusLine('RASSCF: ','Initializing Lucia...')
-      call Lucia_Util('Ini')
-      ! to get number of CSFs for GAS
-      ! and number of determinants to store
-      nconf = sum(ncsasm(1:mxsym))
-      nDet = sum(ndtasm(1:mxsym))
-#   ifdef _DMRG_
-    end if
-#   endif
-  end if
-
-  ISCF = 0
-  if ((ISPIN == NAC+1) .and. (NACTEL == NAC)) ISCF = 1
-  if ((ISPIN == 1) .and. (NACTEL == 2*NAC)) ISCF = 1
-  if (ISCF == 1) then
-    NCONF = 1
-    MAXJT = 1
-  end if
-
-  ! If the CI-root selectioning option has been specified translate
-  ! the reference configuration numbers from the split graph GUGA
-  ! to the symmetric group numbering
-
-  ! ====================================================================
-  if (ICICH == 1) then
-    call mma_allocate(UG2SG_X,NCONF,Label='UG2SG_X')
-    call UG2SG(NROOTS,NCONF,NAC,NACTEL,STSYM,IPR,CONF,CFTP,UG2SG_X,ICI,JCJ,CCI,MXROOT)
-    call mma_deallocate(UG2SG_X)
-  end if
-  ! ====================================================================
-
-  ! faroald initializations
-  if (DOFARO) then
-    if (NSYM > 1) then
-      write(u6,'(1X,A)') 'FARO keyword was used, but NSYM > 1,'
-      write(u6,'(1X,A)') 'switching to LUCIA as the CI backend.'
-      DOFARO = .false.
-    else
-      write(u6,'(1X,A)') '**EXPERIMENTAL**'
-      write(u6,'(1X,A)') 'CI backend is FAROALD instead of LUCIA.'
-      write(u6,'(1X,A)') '**EXPERIMENTAL**'
-      call FAROALD_INIT(NACTEL,NASH(1),ISPIN)
-      call CITRANS_INIT(NACTEL,NASH(1),ISPIN)
-    end if
-  end if
+  call CI_Initialize(.NOT. iDoGAS, DOFARO)
 
 end if
 
+ISCF = 0
+if ((ISPIN == NAC+1) .and. (NACTEL == NAC)) ISCF = 1
+if ((ISPIN == 1) .and. (NACTEL == 2*NAC)) ISCF = 1
+if (ISCF == 1) then
+  NCONF = 1
+  MAXJT = 1
+end if
+
+! If the CI-root selecting option has been specified translate
+! the reference configuration numbers from the split graph GUGA
+! to the symmetric group numbering
+
+! ====================================================================
+if (ICICH == 1 .and. (.not. SkipGUGA)) call UG2SG(NROOTS,NCONF,NAC,NACTEL,STSYM,ICI,JCJ,CCI,MXROOT)
+! ====================================================================
+
 !---  Normal exit -----------------------------------------------------*
 if (DBG) write(u6,*) ' Normal exit from PROC_INP.'
-
-return
 
 contains
 

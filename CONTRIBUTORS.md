@@ -115,6 +115,7 @@ José Manuel Hermida-Ramón
 Bernd Artur Heß  
 Asbjørn Holt  
 Chad E. Hoyer  
+Bhavnesh Jangid  
 Denis Jelovina  
 Marcus Johansson  
 Andy Kaiser  
@@ -134,12 +135,14 @@ Yingjin Ma
 Per Åke Malmqvist  
 Neil Martinsen-Burrell  
 Andy May  
+Jaafar Mehrez  
 Manuela Merchán  
 Isabella C. D. Merritt  
 Deyan Mihaylov  
 Samuel Mikes  
 Abdul Rehaman Moughal Shahi  
 Thomas Müller  
+Prashant J. Nair  
 Takahito Nakajima  
 Naoki Nakatani  
 Pavel Neogrády  
@@ -159,6 +162,7 @@ Ben Pritchard
 Juraj Raab  
 Gerardo Raggi  
 Markus Reiher  
+Alistair Rendell  
 H. Rieger  
 Thies Romig  
 Björn O. Roos  
@@ -170,6 +174,7 @@ Andrew M. Sand
 Michael A. Saunders  
 Igor Schapiro  
 Bernd Schimmelpfennig  
+Lukas Schreder  
 Martin Schütz  
 Thais Scott  
 Luis Seijo  
@@ -198,6 +203,7 @@ Steven Vancoillie
 Valera Veryazov  
 Victor P. Vysotskiy  
 Ulf Wahlgren  
+Meng Wang  
 Yubin Wang  
 Mark A. Watson  
 Hans-Joachim Werner  

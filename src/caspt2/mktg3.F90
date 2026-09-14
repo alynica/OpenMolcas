@@ -33,12 +33,12 @@ subroutine MKTG3(LSYM1,LSYM2,CI1,CI2,OVL,TG1,TG2,NTG3,TG3)
 
 use Index_Functions, only: nTri_Elem, nTri3_Elem
 use Symmetry_Info, only: Mul
-use sguga, only: CIS, EXS, L2ACT, SGS
-use caspt2_module, only: IASYM, ISCF, NACTEL, NASHT
+use sguga, only: CIS, EXS, sg_epq_psi, SGS
+use general_data, only: NACTEL, nLev
+use caspt2_module, only: IASYM, ISCF, NASHT, MxCI
 #ifdef _MOLCAS_MPP_
 use Para_Info, only: Is_Real_Par, nProcs, MyRank
 #endif
-use caspt2_module, only: MxCI
 use stdalloc, only: mma_allocate, mma_deallocate, mma_MaxDBLE
 use Constants, only: Zero, One, Two
 use Definitions, only: wp, iwp, u6
@@ -47,19 +47,14 @@ implicit none
 integer(kind=iwp), intent(in) :: LSYM1, LSYM2, NTG3
 real(kind=wp), intent(in) :: CI1(MXCI), CI2(MXCI)
 real(kind=wp), intent(out) :: OVL, TG1(NASHT,NASHT), TG2(NASHT,NASHT,NASHT,NASHT), TG3(NTG3)
-integer(kind=iwp) :: IL, IND1, IND2, IND3, IP, IP1, IP1END, IP1STA, IP2, IP3, IP3END, IP3STA, IS1, IS2, IS3, ISSG1, ISSG2, ISTAU, &
-                     IT, IT1, IT2, IT3, ITG3, ITS, IU, IU1, IU2, IU3, IUS, IV, IVS, IX, IXS, IY, IYS, IZ, IZS, JL, jtuvxyz, L, &
-                     LFROM, LSGM1, LSGM2, LTAU, LTO, NCI1, nLev, NTAU, NTG3WRK, NTUBUF, NVECS, NYZBUF
+integer(kind=iwp) :: IL, IND1, IND2, IND3, IP, IP1, IP1END, IP1STA, IP1STAU, IP2, IP3, IP3END, IP3STA, IS1, IS2, IS3, ISSG1, &
+                     ISSG2, ISTAU, IT, IT1, IT2, IT3, ITG3, ITS, IU, IU1, IU2, IU3, IUS, IV, IVS, IX, IXS, IY, IYS, IZ, IZS, JL, &
+                     jtuvxyz, L, LFROM, LSGM1, LSGM2, LTAU, LTO, NB, NCI1, NTAU, NTG3WRK, NTUBUF, NVECS, NYZBUF
 real(kind=wp) :: OCC, VAL
-#ifdef _MOLCAS_MPP_
-integer(kind=iwp) :: iTask
-logical(kind=iwp) :: Poor_Par
-#endif
 integer(kind=iwp), allocatable :: P2LEV(:,:)
-real(kind=wp), allocatable :: TG3WRK(:)
+real(kind=wp), allocatable :: TG3BUF(:), TG3WRK(:)
 real(kind=wp), external :: DDot_
-
-nLev = SGS%nLev
+integer(kind=iwp), parameter :: istate = 1
 
 ! Put in zeroes. Recognize special cases:
 OVL = One
@@ -77,6 +72,8 @@ if (ISCF == 0) then
 
   ! Special pair index allows true RAS cases to be handled:
   call mma_allocate(P2LEV,2,NASHT**2,Label='P2LEV')
+  ! Small buffer for batching <Sigma1|Tau> over the IP1 column block into a single DGEMV
+  call mma_allocate(TG3BUF,NASHT**2,Label='TG3BUF')
   IP = 0
   ! First, IL < JL pairs.
   do IL=1,NLEV-1
@@ -101,7 +98,7 @@ if (ISCF == 0) then
   ! But we also need the 'usual' pair index in order to use the
   ! packed addressing.
 
-  NCI1 = CIS%NCSF(LSYM1)
+  NCI1 = CIS(istate)%NCSF(LSYM1)
   ! Overlap:
   if (LSYM1 == LSYM2) OVL = DDOT_(NCI1,CI1,1,CI2,1)
   ! Allocate as many vectors as possible:
@@ -133,14 +130,6 @@ if (ISCF == 0) then
   LTAU = LSGM1+NTUBUF*MXCI
   LSGM2 = LTAU+MXCI
 
-# ifdef _MOLCAS_MPP_
-  !! enable poor parallelization, if applicable
-  if (Is_Real_Par()) then
-    POOR_PAR = .false.
-    iTask = 0
-    !if ((NTUBUF == NYZBUF) .and. (NTUBUF == NASHT**2)) POOR_PAR = .true.
-  end if
-# endif
   ! Sectioning loops over pair indices IP3 (ket side):
   do IP3STA=1,NASHT**2,NYZBUF
     IP3END = min(NASHT**2,IP3STA-1+NYZBUF)
@@ -150,14 +139,14 @@ if (ISCF == 0) then
       ! Translate to levels in the SGUGA coupling order:
       IL = P2LEV(1,IP3)
       JL = P2LEV(2,IP3)
-      IY = L2ACT(IL)
-      IZ = L2ACT(JL)
+      IY = SGS(istate)%L2ACT(IL)
+      IZ = SGS(istate)%L2ACT(JL)
       IYS = IASYM(IY)
       IZS = IASYM(IZ)
       ISSG2 = Mul(Mul(IYS,IZS),LSYM2)
       TG3WRK(LTO:LTO+MXCI-1) = Zero
       ! LTO is first element of Sigma2 = E(YZ) Psi2
-      call SG_Epq_Psi(SGS,CIS,EXS,IL,JL,One,LSYM2,CI2,TG3WRK(LTO))
+      call SG_Epq_Psi(SGS(istate),CIS(istate),EXS(istate),IL,JL,One,LSYM2,CI2,TG3WRK(LTO))
       if (ISSG2 == LSYM1) TG1(IY,IZ) = DDOT_(NCI1,CI1,1,TG3WRK(LTO),1)
       LTO = LTO+MXCI
     end do
@@ -170,29 +159,26 @@ if (ISCF == 0) then
         ! Translate to levels:
         JL = P2LEV(1,IP1)
         IL = P2LEV(2,IP1)
-        IT = L2ACT(IL)
-        IU = L2ACT(JL)
+        IT = SGS(istate)%L2ACT(IL)
+        IU = SGS(istate)%L2ACT(JL)
         ITS = IASYM(IT)
         IUS = IASYM(IU)
         ISSG1 = Mul(Mul(ITS,IUS),LSYM1)
         TG3WRK(LTO:LTO+MXCI-1) = Zero
-        call SG_Epq_Psi(SGS,CIS,EXS,IL,JL,One,LSYM1,CI1,TG3WRK(LTO))
+        call SG_Epq_Psi(SGS(istate),CIS(istate),EXS(istate),IL,JL,One,LSYM1,CI1,TG3WRK(LTO))
         LTO = LTO+MXCI
       end do
       ! Now compute as many elements as possible:
       LFROM = LSGM2
       do IP3=IP3STA,IP3END
 #       ifdef _MOLCAS_MPP_
-        if (Is_Real_Par()) then
-          iTask = iTask+1
-          if (POOR_PAR .and. (mod(iTask,nProcs) /= MyRank)) then
-            LFROM = LFROM+MXCI
-            cycle
-          end if
+        if (Is_Real_Par() .and. (mod(IP3-1,nProcs) /= MyRank)) then
+          LFROM = LFROM+MXCI
+          cycle
         end if
 #       endif
-        IY = L2ACT(P2LEV(1,IP3))
-        IZ = L2ACT(P2LEV(2,IP3))
+        IY = SGS(istate)%L2ACT(P2LEV(1,IP3))
+        IZ = SGS(istate)%L2ACT(P2LEV(2,IP3))
         ! LFROM will be start element of Sigma2=E(YZ) Psi2
         IYS = IASYM(IY)
         IZS = IASYM(IZ)
@@ -200,34 +186,37 @@ if (ISCF == 0) then
         do IP2=IP3,IP1END
           IL = P2LEV(1,IP2)
           JL = P2LEV(2,IP2)
-          IV = L2ACT(IL)
-          IX = L2ACT(JL)
+          IV = SGS(istate)%L2ACT(IL)
+          IX = SGS(istate)%L2ACT(JL)
           IVS = IASYM(IV)
           IXS = IASYM(IX)
           ISTAU = Mul(Mul(IVS,IXS),ISSG2)
-          NTAU = CIS%NCSF(ISTAU)
+          NTAU = CIS(istate)%NCSF(ISTAU)
           TG3WRK(LTAU:LTAU+MXCI-1) = Zero
           ! LTAU  will be start element of Tau=E(VX) Sigma2=E(VX) E(YZ) Psi2
-          call SG_Epq_Psi(SGS,CIS,EXS,IL,JL,One,ISSG2,TG3WRK(LFROM),TG3WRK(LTAU))
+          call SG_Epq_Psi(SGS(istate),CIS(istate),EXS(istate),IL,JL,One,ISSG2,TG3WRK(LFROM),TG3WRK(LTAU))
           if (ISTAU == LSYM1) TG2(IV,IX,IY,IZ) = DDOT_(NTAU,TG3WRK(LTAU),1,CI1,1)
-          do IP1=max(IP2,IP1STA),IP1END
-            IT = L2ACT(P2LEV(1,IP1))
-            IU = L2ACT(P2LEV(2,IP1))
-            ITS = IASYM(IT)
-            IUS = IASYM(IU)
-            ISSG1 = Mul(Mul(ITS,IUS),LSYM1)
-            if (ISSG1 == ISTAU) then
-              L = LSGM1+MXCI*(IP1-IP1STA)
-              VAL = DDOT_(NTAU,TG3WRK(LTAU),1,TG3WRK(L),1)
-              ! Here VAL is the value <PSI1|E(IT1,IU1)E(IT2,IU2)E(IT3,IU3)|PSI2>
-              ! Code to put it in correct place:
-              call get_tg3_index(IT,IU,IV,IX,IY,IZ,NASHT,jtuvxyz)
-              TG3(JTUVXYZ) = VAL
-
+          IP1STAU = max(IP2,IP1STA)
+          NB = IP1END-IP1STAU+1
+          if (NB > 0) then
+            L = LSGM1+MXCI*(IP1STAU-IP1STA)
+            call DGEMV_('T',NTAU,NB,One,TG3WRK(L),MXCI,TG3WRK(LTAU),1,Zero,TG3BUF,1)
+            do IP1=IP1STAU,IP1END
+              IT = SGS(istate)%L2ACT(P2LEV(1,IP1))
+              IU = SGS(istate)%L2ACT(P2LEV(2,IP1))
+              ITS = IASYM(IT)
+              IUS = IASYM(IU)
+              ISSG1 = Mul(Mul(ITS,IUS),LSYM1)
+              if (ISSG1 == ISTAU) then
+                ! Here VAL is the value <PSI1|E(IT1,IU1)E(IT2,IU2)E(IT3,IU3)|PSI2>
+                ! Code to put it in correct place:
+                call get_tg3_index(IT,IU,IV,IX,IY,IZ,NASHT,jtuvxyz)
+                TG3(JTUVXYZ) = TG3BUF(IP1-IP1STAU+1)
+              end if
               ! End of symmetry requirement IF-clause:
-            end if
+            end do
             ! End of IP1 loop.
-          end do
+          end if
           ! End of IP2 loop.
         end do
         LFROM = LFROM+MXCI
@@ -245,7 +234,7 @@ if (ISCF == 0) then
   ! element.
 
 # ifdef _MOLCAS_MPP_
-  if (Is_Real_Par() .and. POOR_PAR) then
+  if (Is_Real_Par()) then
     call GADGOP(TG2,NASHT**4,'+')
     call GADGOP(TG3,NTG3,'+')
   end if
@@ -254,11 +243,11 @@ if (ISCF == 0) then
   ! First, the 2-particle density matrix:
   ! <PSI1|E(T,U,V,X)|PSI2>  = <PSI1|E(TU)E(VX)|PSI2> - D(V,U)*TG2(T,U,V,X)
   do IP1=1,NASHT**2
-    IT = L2ACT(P2LEV(1,IP1))
-    IU = L2ACT(P2LEV(2,IP1))
+    IT = SGS(istate)%L2ACT(P2LEV(1,IP1))
+    IU = SGS(istate)%L2ACT(P2LEV(2,IP1))
     do IP2=1,IP1
-      IV = L2ACT(P2LEV(1,IP2))
-      IX = L2ACT(P2LEV(2,IP2))
+      IV = SGS(istate)%L2ACT(P2LEV(1,IP2))
+      IX = SGS(istate)%L2ACT(P2LEV(2,IP2))
       if (IV == IU) TG2(IT,IU,IV,IX) = TG2(IT,IU,IV,IX)-TG1(IT,IX)
       TG2(IV,IX,IT,IU) = TG2(IT,IU,IV,IX)
     end do
@@ -268,20 +257,20 @@ if (ISCF == 0) then
   ! -D(Y,X)*(TG2(T,U,V,Z)+D(V,U)*TG1(T,Z))
   ! -D(V,U)*TG2(T,X,Y,Z) C -D(Y,U)*TG2(V,X,T,Z)
   do IP1=1,NASHT**2
-    IT = L2ACT(P2LEV(1,IP1))
-    IU = L2ACT(P2LEV(2,IP1))
+    IT = SGS(istate)%L2ACT(P2LEV(1,IP1))
+    IU = SGS(istate)%L2ACT(P2LEV(2,IP1))
     ITS = IASYM(IT)
     IUS = IASYM(IU)
     IS1 = Mul(Mul(ITS,IUS),LSYM1)
     do IP2=1,IP1
-      IV = L2ACT(P2LEV(1,IP2))
-      IX = L2ACT(P2LEV(2,IP2))
+      IV = SGS(istate)%L2ACT(P2LEV(1,IP2))
+      IX = SGS(istate)%L2ACT(P2LEV(2,IP2))
       IVS = IASYM(IV)
       IXS = IASYM(IX)
       IS2 = Mul(Mul(IVS,IXS),IS1)
       do IP3=1,IP2
-        IY = L2ACT(P2LEV(1,IP3))
-        IZ = L2ACT(P2LEV(2,IP3))
+        IY = SGS(istate)%L2ACT(P2LEV(1,IP3))
+        IZ = SGS(istate)%L2ACT(P2LEV(2,IP3))
         IYS = IASYM(IY)
         IZS = IASYM(IZ)
         IS3 = Mul(Mul(IYS,IZS),IS2)
@@ -300,6 +289,7 @@ if (ISCF == 0) then
     end do
   end do
   call mma_deallocate(P2LEV)
+  call mma_deallocate(TG3BUF)
 
 else
 

@@ -22,7 +22,8 @@ use ChoCASPT2, only: MxCharR, MxNVC, nChSpc, nFtSpc, nHtSpc, nKsh, nPsh, NumCho_
 use ChoCASPT2, only: NFTSPC_TOT
 #endif
 use caspt2_global, only: do_grad, LUDRA, LUDRATOT
-use caspt2_module, only: nAsh, nBas, nBasT, nBtch, nBtches, nFro, nIsh, nSym
+use general_data, only: nAsh
+use caspt2_module, only: nBas, nBasT, nBtch, nBtches, nFro, nIsh, nSym
 use stdalloc, only: mma_allocate, mma_MaxDBLE
 use Definitions, only: wp, iwp
 #ifdef _DEBUGPRINT_
@@ -49,7 +50,8 @@ do JSYM=1,NSYM
   NPB = 0
   do ISYMA=1,NSYM
     ISYMB = Mul(ISYMA,JSYM)
-    NPB = NPB+max(NFRO(iSymA),NISH(iSymA),NASH(iSymA))*NBAS(ISYMB)
+    ! For efficiency, construct Fock matrices using the frozen + inactive density, but not separately
+    NPB = NPB+max(NFRO(iSymA)+NISH(iSymA),NASH(iSymA))*NBAS(ISYMB)
     MXFTARR = max(MXFTARR,NPSH(ISYMA)*NKSH(ISYMB))
   end do
   MXHTARR = max(MXHTARR,NPB)

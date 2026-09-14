@@ -16,7 +16,8 @@ subroutine nevint(nAshT,INT1,INT2,Hbar,Htilde)
 use Index_Functions, only: iTri, nTri_Elem
 use CHOVEC_IO, only: NVLOC_CHOBATCH
 use caspt2_global, only: FIMO
-use caspt2_module, only: IfChol, NAES, NASH, NBSQT, NBTCH, NBTCHES, NISH, NORB, NSYM
+use general_data, only: NASH
+use caspt2_module, only: IfChol, NAES, NBSQT, NBTCH, NBTCHES, NISH, NORB, NSYM
 use Symmetry_Info, only: Mul
 #ifdef _MOLCAS_MPP_
 use Para_Info, only: Is_Real_Par
@@ -82,10 +83,10 @@ if (IfChol) then
     MXBGRP = IB2-IB1+1
     if (MXBGRP <= 0) cycle
     call mma_allocate(BGRP,2,MXBGRP,Label='BGRP')
-    IBGRP=1
+    IBGRP = 1
     do IB=IB1,IB2
-     BGRP(:,IBGRP) = IB
-     IBGRP=IBGRP+1
+      BGRP(:,IBGRP) = IB
+      IBGRP = IBGRP+1
     end do
     NBGRP = MXBGRP
 
@@ -138,11 +139,11 @@ if (IfChol) then
         LBRASM = LBRASM+NBRASM
       end do
 
-    !if (IBGRP == 1) then
-    !  SCAL = Zero
-    !else
-    !  SCAL = One
-    !call DGEMM_('N','T',NASH(JSYM)**2,NASH(JSYM)**2,NV,One ,KET,NASH(JSYM)**2,KET,NASH(JSYM)**2,SCAL,INT2,NASH(JSYM)**2)
+      !if (IBGRP == 1) then
+      !  SCAL = Zero
+      !else
+      !  SCAL = One
+      !call DGEMM_('N','T',NASH(JSYM)**2,NASH(JSYM)**2,NV,One ,KET,NASH(JSYM)**2,KET,NASH(JSYM)**2,SCAL,INT2,NASH(JSYM)**2)
     end do
     call mma_deallocate(PIQK)
     !call mma_deallocate(BRA)

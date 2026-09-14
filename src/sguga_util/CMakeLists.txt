@@ -10,11 +10,21 @@
 #***********************************************************************
 
 set (sources
-     sg_cxinit.F90
-     sg_epq_psi.F90
-     sg_prwf.F90
+     sg_citra.F90
+     sg_h_psi.F90
+     sg_mstow.F90
+     sg_one_pdm.F90
+     sg_one_tdm.F90
+     sg_pkwlk.F90
      sg_print.F90
+     sg_prwf.F90
+     sg_setup_rasscf.F90
+     sg_two_pdm.F90
+     sg_two_pdm_full.F90
+     sg_upkwlk.F90
      sguga.F90
+     stepvec.F90
+     stepvector_next.F90
 )
 
 # Source files defining modules that should be available to other *_util directories
