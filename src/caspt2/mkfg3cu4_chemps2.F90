@@ -8,7 +8,8 @@
 ! For more details see the full text of the license in the file        *
 ! LICENSE or in <http://www.gnu.org/licenses/>.                        *
 !                                                                      *
-! Copyright (C) 2018, Quan Phung, edited by Vic Austen                 *
+! Copyright (C) 2018, Quan Phung                                       *
+!               2026, Vic Austen                                       *
 !***********************************************************************
 
 #include "compiler_features.h"
