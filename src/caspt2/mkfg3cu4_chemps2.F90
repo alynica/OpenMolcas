@@ -8,7 +8,7 @@
 ! For more details see the full text of the license in the file        *
 ! LICENSE or in <http://www.gnu.org/licenses/>.                        *
 !                                                                      *
-! Copyright (C) 2018, Quan Phung                                       *
+! Copyright (C) 2018, Quan Phung, edited by Vic Austen                 *
 !***********************************************************************
 
 #include "compiler_features.h"
@@ -16,12 +16,13 @@
 
 subroutine mkfg3cu4_chemps2(mkF,NLEV,G1,F1,G2,F2,G3,F3,idxG3,nG3,TRANS,chemroot)
 
-use caspt2_module, only: EASUM, EPSA
-use Constants, only: Half
+use caspt2_module, only: EPSA
+use Constants, only: Half, Zero
 use Definitions, only: wp, iwp, byte
 use stdalloc, only: mma_allocate, mma_deallocate
 
 implicit none
+real(kind=wp) :: EASUM_CHEMPS2
 logical(kind=iwp), intent(in) :: mkF, TRANS
 integer(kind=iwp), intent(in) :: NLEV, nG3, chemroot
 real(kind=wp), intent(in) :: G1(NLEV,NLEV), F1(NLEV,NLEV), G2(NLEV,NLEV,NLEV,NLEV)
@@ -38,6 +39,12 @@ call chemps2_load3pdm(NLEV,idxG3,nG3,G3,.true.,EPSA,F2,chemroot,TRANS)
 call mma_allocate(G3T,NLEV**6,Label='G3T_CheMPS2')
 call chemps2_load3pdm_all(NLEV,G3T,chemroot,TRANS)
 
+EASUM_CHEMPS2 = Zero
+do iw=1,NLEV
+   EASUM_CHEMPS2 = EASUM_CHEMPS2+EPSA(iw)*G1(iw,iw)
+end do
+
+
 if (mkF) then
   do iG3=1,nG3
     jt = idxG3(1,iG3)
@@ -47,7 +54,7 @@ if (mkF) then
     jy = idxG3(5,iG3)
     jz = idxG3(6,iG3)
 
-    F3(iG3) = F3(iG3)+EASUM*G3(iG3)
+    F3(iG3) = F3(iG3)+EASUM_CHEMPS2*G3(iG3)
     do iw=1,NLEV
       F3(iG3) = F3(iG3) &
         -Half*G1(jt,iw)*g3val(iw,ju,jv,jx,jy,jz)*EPSA(iw) &
@@ -58,7 +65,7 @@ if (mkF) then
         -Half*G1(iw,jz)*g3val(jy,iw,jt,ju,jv,jx)*EPSA(iw)
     end do
 
-    F3(iG3) = F3(iG3)+CU4F3H(NLEV,EPSA,EASUM,G1,G2,F1,F2,jt,ju,jv,jx,jy,jz)
+    F3(iG3) = F3(iG3)+CU4F3H(NLEV,EPSA,EASUM_CHEMPS2,G1,G2,F1,F2,jt,ju,jv,jx,jy,jz)
   end do
 end if
 
